@@ -1,0 +1,3 @@
+[submodule "dependencies/SXEval"]
+	path = dependencies/SXEval
+	url = https://github.com/abadiet/SXEval/

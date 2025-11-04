@@ -12,6 +12,7 @@
 - Preview: low-quality rendering to reduce bandwidth for fast glance
 - Folder and Album (Virtual Folder) handling
 - Automatic Album: based on metada
+- Handle multiple sources at the same time
 
 ## Class Diagram
 <img src="https://raw.githubusercontent.com/abadiet/FNIFI/refs/heads/main/resources/architecture.png?raw=true" style="max-width: 100%;">
