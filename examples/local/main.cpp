@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     }
 
     /* File indexing */
-    fnifi::FNIFI fi(conns, colls, argv[1]);
+    fnifi::FNIFI fi(conns, colls, &conn, argv[1]);
 
     return 0;
 }

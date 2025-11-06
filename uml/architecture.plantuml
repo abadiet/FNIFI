@@ -12,9 +12,9 @@ package fnifi {
         -_sortedFiles : std::vector<File*>
         -_filteredFiles : std::vector<File*>
         -_sortFiltFiles : std::vector<File*>
+        -_storingConn : IConnection*
         -_storingPath : std::string
-        +FNIFI(conns : std::vector<IConnection*>&,
-        colls : std::vector<Collection>&, storingPath : const char*)
+        +FNIFI(conns : std::vector<IConnection*>&, colls : std::vector<Collection>&, storingConn : IConnection*, storingPath : const char*)
         +index()
         +sort(exp : const char*)
         +filter(exp : const char*)

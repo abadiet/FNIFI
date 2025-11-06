@@ -14,7 +14,8 @@ namespace fnifi {
 class FNIFI {
 public:
     FNIFI(std::vector<connection::IConnection*>& conns,
-          std::vector<Collection>& colls, const char* storingPath);
+          std::vector<Collection>& colls, connection::IConnection* storingConn,
+          const char* storingPath);
     void index [[noreturn]] ();
     void sort [[noreturn]] (const char* expr);
     void filter [[noreturn]] (const char* expr);
@@ -32,6 +33,7 @@ private:
     std::vector<File*> _sortedFiles;
     std::vector<File*> _filteredFiles;
     std::vector<File*> _sortFiltFiles;
+    connection::IConnection* _storingConn;
     std::string _storingPath;
 };
 

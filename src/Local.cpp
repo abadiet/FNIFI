@@ -18,9 +18,9 @@ fileBuf_t Local::read(const char* filepath) {
         std::ostringstream msg;
         msg << "File '" << filepath << "' cannot be open";
         throw std::runtime_error(msg.str());
-    } 
+    }
     const fileBuf_t buffer((std::istreambuf_iterator<char>(file)),
-                           std::istreambuf_iterator<char>());
+                            std::istreambuf_iterator<char>());
     return buffer;
 }
 
@@ -30,7 +30,7 @@ void Local::write(const char* filepath, const fileBuf_t& buffer) {
         std::ostringstream msg;
         msg << "File '" << filepath << "' cannot be open";
         throw std::runtime_error(msg.str());
-    } 
+    }
     file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
 }
 

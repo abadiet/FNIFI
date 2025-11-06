@@ -1,11 +1,14 @@
 #include "fnifi/FNIFI.hpp"
+#include "fnifi/connection/IConnection.hpp"
 
 
 using namespace fnifi;
 
 FNIFI::FNIFI(std::vector<connection::IConnection*>& conns,
-      std::vector<Collection>& colls, const char* storingPath)
-: _conns(conns), _colls(colls), _storingPath(storingPath)
+             std::vector<Collection>& colls,
+             connection::IConnection* storingConn, const char* storingPath)
+: _conns(conns), _colls(colls), _storingConn(storingConn),
+    _storingPath(storingPath)
 {
 
 }
