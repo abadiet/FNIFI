@@ -9,7 +9,7 @@ namespace connection {
 
 class IConnection {
 public:
-    virtual ~IConnection() = 0;
+    virtual ~IConnection();
     virtual void connect() = 0;
     virtual void disconnect() = 0;
     virtual fileBuf_t read(const char* filepath) = 0;

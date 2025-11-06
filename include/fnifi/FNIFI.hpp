@@ -4,6 +4,7 @@
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/Collection.hpp"
 #include "fnifi/File.hpp"
+#include "fnifi/utils.hpp"
 #include <sxeval/SXEval.hpp>
 #include <vector>
 
@@ -12,21 +13,22 @@ namespace fnifi {
 
 class FNIFI {
 public:
-    FNIFI(std::vector<connection::IConnection>& conns,
+    FNIFI(std::vector<connection::IConnection*>& conns,
           std::vector<Collection>& colls, const char* storingPath);
-    void index();
-    void sort(const char* expr);
-    void filter(const char* expr);
+    void index [[noreturn]] ();
+    void sort [[noreturn]] (const char* expr);
+    void filter [[noreturn]] (const char* expr);
     const std::vector<File*>& getFiles() const;
-    const File* begin() const;
-    const File* end() const;
+    std::vector<File*>::const_iterator begin() const;
+    std::vector<File*>::const_iterator end() const;
 
 private:
-    std::vector<connection::IConnection> _conns;
+    std::vector<connection::IConnection*> _conns;
     std::vector<Collection> _colls;
     std::vector<File> _files;
-    sxeval::SXEval<expr_t> sortingAlgo;
-    sxeval::SXEval<expr_t> filteringAlgo;
+    sxeval::SXEval<expr_t> _sortingAlgo;
+    sxeval::SXEval<expr_t> _filteringAlgo;
+    std::function<expr_t&(const std::string&)> _exprHandler;
     std::vector<File*> _sortedFiles;
     std::vector<File*> _filteredFiles;
     std::vector<File*> _sortFiltFiles;

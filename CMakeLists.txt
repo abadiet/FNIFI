@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 # Options
 option(BUILD_UML "Build UML" OFF)
+option(BUILD_EXAMPLES "Build examples" ON)
 option(FNIFI_DEBUG "Debug mode" OFF)
 
 # Project
@@ -56,14 +57,14 @@ endif()
 
 # Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
-target_link_libraries(${PROJECT_NAME} PRIVATE sxeval)
+target_link_libraries(${PROJECT_NAME} PUBLIC sxeval)
 
 # UML
 if(BUILD_UML)
     set(UML_OUTPUTS "")
     file(GLOB UML_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/uml/*.plantuml)
     foreach(UML_FILE ${UML_SOURCES})
-        message("Found UML file ${UML_FILE}")
+        message(STATUS "Adding UML file: ${UML_FILE}")
         get_filename_component(UML_NAME ${UML_FILE} NAME_WE)
         set(UML_TMP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/uml/${UML_NAME}.png)
         set(UML_OUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/resources/${UML_NAME}.png)
@@ -79,4 +80,8 @@ if(BUILD_UML)
     add_custom_target(generate_uml ALL
         DEPENDS ${UML_OUTPUTS}
     )
+endif()
+
+if(BUILD_EXAMPLES)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()

@@ -4,7 +4,7 @@ skinparam groupinheritance 2
 
 package fnifi {
     class FNIFI {
-        -_conns : std::vector<IConnection>
+        -_conns : std::vector<IConnection*>
         -_colls : std::vector<Collection>
         -_files : std::vector<File>
         -_sortingAlgo : sxeval::SXEval<expr_t>
@@ -13,13 +13,14 @@ package fnifi {
         -_filteredFiles : std::vector<File*>
         -_sortFiltFiles : std::vector<File*>
         -_storingPath : std::string
-        +FNIFI(conn : IConnection&, storingPath : const char*)
+        +FNIFI(conns : std::vector<IConnection*>&,
+        colls : std::vector<Collection>&, storingPath : const char*)
         +index()
         +sort(exp : const char*)
         +filter(exp : const char*)
         +getFiles() : const std::vector<File*>&
-        +begin() : const File*
-        +end() : const File*
+        +begin() : const_iterator
+        +end() : const_iterator
     }
 
     class File {
@@ -29,14 +30,14 @@ package fnifi {
         +getId() : fileId_t
         +getPath() : std::string
         +getMetadata(key : const char*) : std::string
-        +getPreview() : fileBuf_t
-        +getOriginal() : fileBuf_t
+        +preview() : fileBuf_t
+        +read() : fileBuf_t
         +write(buf : const fileBuf_t&)
         +remove()
     }
 
     class Collection {
-        -_conn : const IConnection*
+        -_conn : IConnection*
         -_indexingPath : const std::string
         -_storingPath : const std::string
         +Collection(conn : IConnection*, indexingPath : const char*,
@@ -44,9 +45,11 @@ package fnifi {
         +getFirstId() : fileId_t
         +getLastId() : fileId_t
         +getFilePath(id : fileId_t) : std::string
+        +preview(id : fileId_t) : fileBuf_t
         +read(id : fileId_t) : fileBuf_t
         +write(id : fileId_t, buffer : const fileBuf_t&)
         +remove(id : fileId_t)
+        -getPreviewFilePath(id : fileId_t) : std::string
     }
 
     package connection {
