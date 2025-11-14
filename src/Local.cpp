@@ -12,6 +12,14 @@ void Local::connect() {}
 
 void Local::disconnect() {}
 
+std::filesystem::recursive_directory_iterator Local::iterate(const char* path) {
+    return std::filesystem::recursive_directory_iterator(path);
+}
+
+bool Local::exists(const char* filepath) {
+    return std::filesystem::exists(filepath);
+}
+
 fileBuf_t Local::read(const char* filepath) {
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
@@ -31,7 +39,8 @@ void Local::write(const char* filepath, const fileBuf_t& buffer) {
         msg << "File '" << filepath << "' cannot be open";
         throw std::runtime_error(msg.str());
     }
-    file.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+    file.write(reinterpret_cast<const char*>(buffer.data()),
+               static_cast<std::streamsize>(buffer.size()));
 }
 
 void Local::remove(const char* filepath) {

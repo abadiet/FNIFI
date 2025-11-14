@@ -25,6 +25,9 @@ int main(int argc, char** argv) {
     /* File indexing */
     fnifi::FNIFI fi(conns, colls, &conn, argv[1]);
 
+    /* Defragment to optimize disk usage */
+    fi.defragment();
+
     /* Loop over the files */
     for (const auto& file : fi) {
         std::cout << file->getPath() << ": ";
@@ -32,6 +35,7 @@ int main(int argc, char** argv) {
                           "Exif.Image.Model");
         std::cout << std::endl;
     }
+
 
     /* Cleaning */
     for (auto& coll : colls) {

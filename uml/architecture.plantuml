@@ -6,7 +6,6 @@ package fnifi {
     class FNIFI {
         -_conns : std::vector<IConnection*>
         -_colls : std::vector<Collection*>
-        -_files : std::vector<File>
         -_sortingAlgo : sxeval::SXEval<expr_t>
         -_filteringAlgo : sxeval::SXEval<expr_t>
         -_sortedFiles : std::vector<File*>
@@ -17,6 +16,7 @@ package fnifi {
         +FNIFI(conns : std::vector<IConnection*>&, colls : std::vector<Collection*>&,
         storingConn : IConnection*, storingPath : const char*)
         +index()
+        +defragment()
         +sort(exp : const char*)
         +filter(exp : const char*)
         +getFiles() : const std::vector<File*>&
@@ -31,10 +31,17 @@ package fnifi {
             +IPTC
         }
 
+        interface IFileHelper {
+            +getFilePath(id : fileId_t) : std::string
+            +preview(id : fileId_t) : fileBuf_t
+            +read(id : fileId_t) : fileBuf_t
+        }
+
         class File {
             -_id : const fileId_t
-            -_coll : const Collection*
-            +File(id : fileId_t, coll : const Collection*)
+            -_helper : const IFileHelper*
+            +File(id : fileId_t, helper : const IFileHelper*)
+            +operator==(other : const File&) : bool
             +getId() : fileId_t
             +getPath() : std::string
             +getMetadata(os : std::ostream&, type : MetadataType,
@@ -43,22 +50,25 @@ package fnifi {
             +read() : fileBuf_t
         }
 
-        class Collection {
+        class Collection extends IFileHelper {
             -_conn : IConnection*
-            -_indexingPath : const std::string
-            -_storingPath : const std::string
-            -_nFiles : fileId_t
-            -_offsets : std::fstream
+            -_indexingPath : const std::filesystem::path
+            -_storingPath : const std::filesystem::path
+            -_files : std::unordered_set<File>
+            -_mapping : std::fstream
             -_filepaths : std::fstream
             +Collection(conn : IConnection*, indexingPath : const char*,
-            ~Collection()
-            +index()
             storingPath : const char*)
-            +getFirstId() : fileId_t
-            +getLastId() : fileId_t
+            +~Collection()
+            +index(removed : std::unordered_set<fileId_t>&,
+            added : std::unordered_set<fileId_t>&)
+            +defragment()
             +getFilePath(id : fileId_t) : std::string
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
+            +begin()
+            +end()
+            +size()
             -getPreviewFilePath(id : fileId_t) : std::string
         }
     }
@@ -67,6 +77,8 @@ package fnifi {
         interface IConnection {
             +connect()
             +disconnect()
+            +iterate(path : const char*) : std::filesystem::recursive_directory_iterator
+            +exists(filepath : const char*) : bool
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +remove(filepath : const char*)
@@ -76,6 +88,8 @@ package fnifi {
             +SMB(addr : const char*, user : const char*, pwd : const char*)
             +connect()
             +disconnect()
+            +iterate(path : const char*) : std::filesystem::recursive_directory_iterator
+            +exists(filepath : const char*) : bool
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +remove(filepath : const char*)
@@ -85,6 +99,8 @@ package fnifi {
             +Local()
             +connect()
             +disconnect()
+            +iterate(path : const char*) : std::filesystem::recursive_directory_iterator
+            +exists(filepath : const char*) : bool
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +remove(filepath : const char*)
@@ -93,11 +109,11 @@ package fnifi {
 
     FNIFI o--> IConnection : 0..*\n_conns
     FNIFI o--> Collection : 0..*\n_colls
-    FNIFI *--> File : 0..*\n_files
+    Collection *--> File : 0..*\n_files
     FNIFI o--> File : 0..*\n_sortedFiles
     FNIFI o--> File : 0..*\n_filteredFiles
     FNIFI o--> File : 0..*\n_sortFiltFiles
-    File o--> Collection : 1..1\n_coll
+    File o--> IFileHelper : 1..1\n_coll
     Collection o--> IConnection : 1..1\n_conn
 }
 

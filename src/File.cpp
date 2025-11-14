@@ -5,27 +5,35 @@
 using namespace fnifi;
 using namespace fnifi::file;
 
-File::File(fileId_t id, Collection* coll)
-: _id(id), _coll(coll)
+File::File(fileId_t id, IFileHelper* helper)
+: _id(id), _helper(helper)
 {
 
 }
 
+bool File::operator==(const File& other) const {
+    return _id == other.getId();
+}
+
+fileId_t File::getId() const {
+    return _id;
+}
+
 std::string File::getPath() const {
-    return _coll->getFilePath(_id);
+    return _helper->getFilePath(_id);
 }
 
 std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
                                 const char* key) const {
-    const auto data = _coll->read(_id);
+    const auto data = _helper->read(_id);
 
     switch (type) {
         case XMP:
         case EXIF:
         case IPTC:
             {
-                const auto image = Exiv2::ImageFactory::open(data.data(),
-                                                             data.size());
+                const auto image = Exiv2::ImageFactory::open(
+                    static_cast<const Exiv2::byte*>(data.data()), data.size());
                 if (image.get() == nullptr) {
                     /* This is not an image */
                     return os;
@@ -69,9 +77,9 @@ std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
 }
 
 fileBuf_t File::preview() const {
-    return _coll->preview(_id);
+    return _helper->preview(_id);
 }
 
 fileBuf_t File::read() const {
-    return _coll->read(_id);
+    return _helper->read(_id);
 }

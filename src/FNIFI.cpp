@@ -11,12 +11,38 @@ FNIFI::FNIFI(std::vector<connection::IConnection*>& conns,
     _storingPath(storingPath)
 {
     index();
+
+    /* TODO: load last sorting and filtering algorithms */
+
+    {
+        size_t nFiles = 0;
+        for (const auto& coll : _colls) {
+            nFiles += coll->size();
+        }
+        _sortFiltFiles.reserve(nFiles);
+        for (const auto& coll : _colls) {
+            for (const auto& file : *coll) {
+                _sortFiltFiles.push_back(&file);
+            }
+        }
+    }
+
     UNUSED(_storingConn);
+}
+
+void FNIFI::defragment() {
+    for (auto& coll : _colls) {
+         coll->defragment();
+    }
 }
 
 void FNIFI::index() {
     for (auto& coll : _colls) {
-        coll->index();
+        std::unordered_set<fileId_t> removed;
+        std::unordered_set<fileId_t> added;
+        coll->index(removed, added);
+
+        /* TODO: update thanks to added and removed sets */
     }
 }
 
@@ -30,14 +56,14 @@ void FNIFI::filter(const char* expr) {
     TODO
 }
 
-const std::vector<file::File*>& FNIFI::getFiles() const {
+const std::vector<const file::File*>& FNIFI::getFiles() const {
     return _sortFiltFiles;
 }
 
-std::vector<file::File*>::const_iterator FNIFI::begin() const {
+std::vector<const file::File*>::const_iterator FNIFI::begin() const {
     return _sortFiltFiles.begin();
 }
 
-std::vector<file::File*>::const_iterator FNIFI::end() const {
+std::vector<const file::File*>::const_iterator FNIFI::end() const {
     return _sortFiltFiles.end();
 }

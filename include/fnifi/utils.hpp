@@ -3,26 +3,64 @@
 
 #include <vector>
 #include <ostream>
-#include <istream>
+#include <fstream>
+#include <iostream>
+#include <chrono>
+#include <format>
 
 #define UNUSED(x) (void)x
 #define TODO throw std::runtime_error("Not yet implemented");
 
+#ifdef FNIFI_DEBUG
+#define LOG                                                                   \
+    std::clog << "["                                                          \
+        << std::format("{:%Y-%m-%d %H:%M:%S}",                                \
+                       std::chrono::system_clock::now())                      \
+        << "] "
+#define DLOG(x) LOG << "[DEBUG] " << x << std::endl;
+#define ILOG(x) LOG << "[INFO]  " << x << std::endl;
+#define WLOG(x) LOG << "[WARN]  " << x << std::endl;
+#define ELOG(x) LOG << "[ERROR] " << x << std::endl;
+#else  /* FNIFI_DEBUG */
+#define DLOG(x)
+#define ILOG(x)
+#define WLOG(x)
+#define ELOG(x)
+#endif  /* FNIFI_DEBUG */
+
 
 namespace fnifi {
 
-typedef std::vector<char> fileBuf_t;
+typedef std::vector<unsigned char> fileBuf_t;
 typedef unsigned int fileId_t;
 typedef unsigned int expr_t;
 
 template <typename T>
-std::ostream& Serialize(std::ostream& os, const T& var) {
-   os.write(reinterpret_cast<const char*>(&var), sizeof(var));
-   return os;
+std::ostream& Serialize(std::ostream& os, const T& var);
+template <typename T>
+std::ostream& Serialize(std::ostream& os, const std::vector<T>& var);
+template <typename T>
+std::istream& Deserialize(std::istream& is, T& var);
+template <typename T>
+std::istream& Deserialize(std::istream& is, std::vector<T>& var);
+
+bool operator>(const timespec& lhs, const timespec& rhs);
+
+std::fstream OpenOrCreateFile(const char* filepath, std::ios::openmode mode);
+
+}  /* namespace fnifi */
+
+
+/* IMPLEMENTATIONS */
+
+
+template <typename T>
+std::ostream& fnifi::Serialize(std::ostream& os, const T& var) {
+   return os.write(reinterpret_cast<const char*>(&var), sizeof(var));
 }
 
 template <typename T>
-std::ostream& Serialize(std::ostream& os, const std::vector<T>& var) {
+std::ostream& fnifi::Serialize(std::ostream& os, const std::vector<T>& var) {
     size_t size = var.size();
     os.write(reinterpret_cast<const char*>(&size), sizeof(size));
     for (const auto& elem : var) {
@@ -32,13 +70,12 @@ std::ostream& Serialize(std::ostream& os, const std::vector<T>& var) {
 }
 
 template <typename T>
-std::istream& Deserialize(std::istream& is, T& var) {
-    is.read(reinterpret_cast<char*>(&var), sizeof(var));
-    return is;
+std::istream& fnifi::Deserialize(std::istream& is, T& var) {
+    return is.read(reinterpret_cast<char*>(&var), sizeof(var));
 }
 
 template <typename T>
-std::istream& Deserialize(std::istream& is, std::vector<T>& var) {
+std::istream& fnifi::Deserialize(std::istream& is, std::vector<T>& var) {
     size_t size;
     is.read(reinterpret_cast<char*>(&size), sizeof(size));
     var.clear();
@@ -49,6 +86,26 @@ std::istream& Deserialize(std::istream& is, std::vector<T>& var) {
     return is;
 }
 
-}  /* namespace fnifi */
+inline bool fnifi::operator>(const timespec& lhs, const timespec& rhs) {
+    if (lhs.tv_sec == rhs.tv_sec) {
+        return lhs.tv_nsec > rhs.tv_nsec;
+    }
+    return lhs.tv_sec > rhs.tv_sec;
+}
+
+inline std::fstream fnifi::OpenOrCreateFile(const char* filepath,
+                                            std::ios::openmode mode)
+{
+    std::fstream file(filepath, mode);
+    if (!file.is_open()) {
+        file.open(filepath, mode | std::ios::trunc);
+        if (!file.is_open()) {
+            std::ostringstream msg;
+            msg << "Cannot open file " << filepath;
+            throw std::runtime_error(msg.str());
+        }
+    }
+    return file;
+}
 
 #endif  /* FNIFI_UTILS_HPP */
