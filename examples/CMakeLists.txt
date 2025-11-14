@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(SXEVAL_FLAGS -Wno-deprecated-redundant-constexpr-static-def)
 file(GLOB SUBDIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} */)
 foreach(SUBDIR ${SUBDIRS})
     if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${SUBDIR})
@@ -24,12 +25,12 @@ foreach(SUBDIR ${SUBDIRS})
                 -Wconditional-uninitialized -Wassign-enum
                 -Wunused-exception-parameter -Wcovered-switch-default
                 -Wno-c++98-compat -Wno-c++98-compat-pedantic
-                -Wno-padded>
+                -Wno-padded ${SXEVAL_FLAGS}>
             $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror -Wfloat-equal
                 -Wundef -Wcast-align -Wwrite-strings -Wconversion
                 -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
                 -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
-                -Wimplicit-fallthrough -Wno-padded>
+                -Wimplicit-fallthrough -Wno-padded ${SXEVAL_FLAGS}>
             )
 
             # Dependencies

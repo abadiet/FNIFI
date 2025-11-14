@@ -8,13 +8,14 @@ option(FNIFI_DEBUG "Debug mode" OFF)
 # Project
 project(fnifi)
 set(FNIFI_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${FNIFI_INCLUDE})
 
 # Flags
+set(SXEVAL_FLAGS -Wno-deprecated-redundant-constexpr-static-def)
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:AppleClang>:-O3 -Wall -Wextra -Werror
     -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion
@@ -26,12 +27,12 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wconditional-uninitialized -Wassign-enum
     -Wunused-exception-parameter -Wcovered-switch-default
     -Wno-c++98-compat -Wno-c++98-compat-pedantic
-    -Wno-padded>
+    -Wno-padded -Wno-switch-default ${SXEVAL_FLAGS}>
     $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror -Wfloat-equal
     -Wundef -Wcast-align -Wwrite-strings -Wconversion
     -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
     -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
-    -Wimplicit-fallthrough -Wno-padded>
+    -Wimplicit-fallthrough -Wno-padded ${SXEVAL_FLAGS}>
 )
 if(FNIFI_DEBUG)
     target_compile_options(${PROJECT_NAME} PRIVATE -DFNIFI_DEBUG)
@@ -57,7 +58,8 @@ endif()
 
 # Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
-target_link_libraries(${PROJECT_NAME} PUBLIC sxeval)
+find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
+target_link_libraries(${PROJECT_NAME} PUBLIC sxeval Exiv2::exiv2lib)
 
 # UML
 if(BUILD_UML)

@@ -5,16 +5,19 @@
 using namespace fnifi;
 
 FNIFI::FNIFI(std::vector<connection::IConnection*>& conns,
-             std::vector<Collection>& colls,
+             std::vector<file::Collection*>& colls,
              connection::IConnection* storingConn, const char* storingPath)
 : _conns(conns), _colls(colls), _storingConn(storingConn),
     _storingPath(storingPath)
 {
-
+    index();
+    UNUSED(_storingConn);
 }
 
 void FNIFI::index() {
-    TODO
+    for (auto& coll : _colls) {
+        coll->index();
+    }
 }
 
 void FNIFI::sort(const char* expr) {
@@ -27,14 +30,14 @@ void FNIFI::filter(const char* expr) {
     TODO
 }
 
-const std::vector<File*>& FNIFI::getFiles() const {
+const std::vector<file::File*>& FNIFI::getFiles() const {
     return _sortFiltFiles;
 }
 
-std::vector<File*>::const_iterator FNIFI::begin() const {
+std::vector<file::File*>::const_iterator FNIFI::begin() const {
     return _sortFiltFiles.begin();
 }
 
-std::vector<File*>::const_iterator FNIFI::end() const {
+std::vector<file::File*>::const_iterator FNIFI::end() const {
     return _sortFiltFiles.end();
 }

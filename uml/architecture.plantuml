@@ -5,7 +5,7 @@ skinparam groupinheritance 2
 package fnifi {
     class FNIFI {
         -_conns : std::vector<IConnection*>
-        -_colls : std::vector<Collection>
+        -_colls : std::vector<Collection*>
         -_files : std::vector<File>
         -_sortingAlgo : sxeval::SXEval<expr_t>
         -_filteringAlgo : sxeval::SXEval<expr_t>
@@ -14,7 +14,8 @@ package fnifi {
         -_sortFiltFiles : std::vector<File*>
         -_storingConn : IConnection*
         -_storingPath : std::string
-        +FNIFI(conns : std::vector<IConnection*>&, colls : std::vector<Collection>&, storingConn : IConnection*, storingPath : const char*)
+        +FNIFI(conns : std::vector<IConnection*>&, colls : std::vector<Collection*>&,
+        storingConn : IConnection*, storingPath : const char*)
         +index()
         +sort(exp : const char*)
         +filter(exp : const char*)
@@ -23,33 +24,43 @@ package fnifi {
         +end() : const_iterator
     }
 
-    class File {
-        -_id : const fileId_t
-        -_coll : const Collection*
-        +File(id : fileId_t, coll : const Collection*)
-        +getId() : fileId_t
-        +getPath() : std::string
-        +getMetadata(key : const char*) : std::string
-        +preview() : fileBuf_t
-        +read() : fileBuf_t
-        +write(buf : const fileBuf_t&)
-        +remove()
-    }
+    package file {
+        enum MetadataType {
+            +XMP
+            +EXIF
+            +IPTC
+        }
 
-    class Collection {
-        -_conn : IConnection*
-        -_indexingPath : const std::string
-        -_storingPath : const std::string
-        +Collection(conn : IConnection*, indexingPath : const char*,
-        storingPath : const char*)
-        +getFirstId() : fileId_t
-        +getLastId() : fileId_t
-        +getFilePath(id : fileId_t) : std::string
-        +preview(id : fileId_t) : fileBuf_t
-        +read(id : fileId_t) : fileBuf_t
-        +write(id : fileId_t, buffer : const fileBuf_t&)
-        +remove(id : fileId_t)
-        -getPreviewFilePath(id : fileId_t) : std::string
+        class File {
+            -_id : const fileId_t
+            -_coll : const Collection*
+            +File(id : fileId_t, coll : const Collection*)
+            +getId() : fileId_t
+            +getPath() : std::string
+            +getMetadata(os : std::ostream&, type : MetadataType,
+            key : const char*) : std::ostream&
+            +preview() : fileBuf_t
+            +read() : fileBuf_t
+        }
+
+        class Collection {
+            -_conn : IConnection*
+            -_indexingPath : const std::string
+            -_storingPath : const std::string
+            -_nFiles : fileId_t
+            -_offsets : std::fstream
+            -_filepaths : std::fstream
+            +Collection(conn : IConnection*, indexingPath : const char*,
+            ~Collection()
+            +index()
+            storingPath : const char*)
+            +getFirstId() : fileId_t
+            +getLastId() : fileId_t
+            +getFilePath(id : fileId_t) : std::string
+            +preview(id : fileId_t) : fileBuf_t
+            +read(id : fileId_t) : fileBuf_t
+            -getPreviewFilePath(id : fileId_t) : std::string
+        }
     }
 
     package connection {
@@ -80,8 +91,8 @@ package fnifi {
         }
     }
 
-    FNIFI *--> IConnection : 0..*\n_conns
-    FNIFI *--> Collection : 0..*\n_colls
+    FNIFI o--> IConnection : 0..*\n_conns
+    FNIFI o--> Collection : 0..*\n_colls
     FNIFI *--> File : 0..*\n_files
     FNIFI o--> File : 0..*\n_sortedFiles
     FNIFI o--> File : 0..*\n_filteredFiles

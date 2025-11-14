@@ -8,7 +8,7 @@
 - Handle complex filtering and sorting
 - Keep it simple
 
-## Could be great
+### Could be great
 - Preview: low-quality rendering to reduce bandwidth for fast glance
 - Folder and Album (Virtual Folder) handling
 - Automatic Album: based on metada
@@ -16,3 +16,7 @@
 
 ## Class Diagram
 <img src="https://raw.githubusercontent.com/abadiet/FNIFI/refs/heads/main/resources/architecture.png?raw=true" style="max-width: 100%;">
+
+## Dependencies
+- [SXEval](https://github.com/abadiet/SXEval): S-expression interpreter (includded as a submodule)
+- [Exiv2](https://exiv2.orgl): Image metadata library
