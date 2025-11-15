@@ -1,17 +1,17 @@
-#ifndef FNIFI_CONNECTION_LOCAL_HPP
-#define FNIFI_CONNECTION_LOCAL_HPP
+#ifndef FNIFI_CONNECTION_RELATIVE_HPP
+#define FNIFI_CONNECTION_RELATIVE_HPP
 
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils.hpp"
-#include "fnifi/connection/DirectoryIterator.hpp"
+#include <filesystem>
 
 
 namespace fnifi {
 namespace connection {
 
-class Local : virtual public IConnection {
+class Relative : virtual public IConnection {
 public:
-    Local();
+    Relative(IConnection* conn, const char* path);
     void connect() override;
     void disconnect() override;
     DirectoryIterator iterate(const char* path) override;
@@ -22,9 +22,12 @@ public:
     void upload(const char* from, const char* to) override;
     void remove(const char* filepath) override;
 
+private:
+    IConnection* _conn;
+    const std::filesystem::path _path;
 };
 
 }  /* namespace connection */
 }  /* namespace fnifi */
 
-#endif  /* FNIFI_CONNECTION_LOCAL_HPP */
+#endif  /* FNIFI_CONNECTION_RELATIVE_HPP */

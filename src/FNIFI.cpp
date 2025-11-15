@@ -4,10 +4,9 @@
 
 using namespace fnifi;
 
-FNIFI::FNIFI(std::vector<connection::IConnection*>& conns,
-             std::vector<file::Collection*>& colls,
+FNIFI::FNIFI(std::vector<file::Collection*>& colls,
              connection::IConnection* storingConn, const char* storingPath)
-: _conns(conns), _colls(colls), _storingConn(storingConn),
+: _colls(colls), _storingConn(storingConn),
     _storingPath(storingPath)
 {
     index();

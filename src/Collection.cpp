@@ -14,20 +14,13 @@
 using namespace fnifi;
 using namespace fnifi::file;
 
-Collection::Collection(connection::IConnection* conn, const char* indexingPath,
-                       const char* storingPath)
-: _conn(conn), _indexingPath(indexingPath), _storingPath(storingPath)
+Collection::Collection(connection::IConnection* indexingConn,
+                       connection::IConnection* storingConn,
+                       const char* tmpPath)
+: _indexingConn(indexingConn), _storingConn(storingConn), _tmpPath(tmpPath)
 {
-    {
-        const auto path = _storingPath / MAPPING_FILE;
-        _mapping = OpenOrCreateFile(path.c_str(), std::ios::in |
-                                    std::ios::out | std::ios::binary);
-    }
-    {
-        const auto path = _storingPath / FILEPATHS_FILE;
-        _filepaths = OpenOrCreateFile(path.c_str(), std::ios::in |
-                                      std::ios::out | std::ios::binary);
-    }
+    /* download files */
+    pullStored();
 
     /* setup _files and _availableIds */
     {
@@ -45,7 +38,7 @@ Collection::Collection(connection::IConnection* conn, const char* indexingPath,
              << " files and " << _availableIds.size()
              << " available ids at initialisation")
         if (!_mapping.eof() && _mapping.fail()) {
-            throw std::runtime_error("Error reading " + (_storingPath /
+            throw std::runtime_error("Error reading " + (_tmpPath /
                                      MAPPING_FILE).string());
         }
         _mapping.clear();
@@ -64,13 +57,17 @@ Collection::~Collection() {
 void Collection::index(std::unordered_set<fileId_t>& removed,
                        std::unordered_set<fileId_t>& added)
 {
+    DLOG("Collection " << this << " is indexing")
+
+    pullStored();
+
     /* unindex removed files */
     for (auto it = _files.begin(); it != _files.end();) {
-        const auto path = _indexingPath / it->getPath();
-        if (!_conn->exists(path.c_str())) {
+        const auto path = it->getPath();
+        if (!_indexingConn->exists(path.c_str())) {
             const auto id = it->getId();
 
-            DLOG("Collection " << this << " realized that file " << id
+            DLOG("Collection " << this << " realized that file " << path
                  << " has been remove")
 
             /* remove from _mapping */
@@ -98,72 +95,57 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
     /* get current info, including last indexing time */
     Info info;
     {
-        const auto filepath = _storingPath / INFO_FILE;
-        if (_conn->exists(filepath.c_str())) {
-            std::ifstream file(filepath, std::ios::ate);
-            if (!file.is_open()) {
-                throw std::runtime_error("Cannot open file " +
-                                         filepath.string());
-            }
-            if (file.tellg() > 0) {
-                /* the file is not empty */
-                file.seekg(0);
-                Deserialize(file, info);
-            }
-            file.close();
+        const auto filepath = _tmpPath / INFO_FILE;
+        std::ifstream file(filepath, std::ios::ate);
+        if (!file.is_open()) {
+            throw std::runtime_error("Cannot open file " +
+                                     filepath.string());
         }
+        if (file.tellg() > 0) {
+            /* the file is not empty */
+            file.seekg(0);
+            Deserialize(file, info);
+        }
+        file.close();
     }
 
     struct timespec mostRecentTime = info.lastIndexing;
 
     /* check for new files */
-    for (const auto& entry : _conn->iterate(_indexingPath.c_str())) {
-        if (entry.is_regular_file()) {
-            struct stat fileStat;
-            if (lstat(entry.path().string().c_str(), &fileStat) == 0) {
-                const auto filetime = fileStat.st_ctimespec;
-                if (filetime > info.lastIndexing) {
-                    DLOG("Collection " << this << " found new file " << entry)
-                    /* TODO: check if the file is not already indexed */
+    for (const auto& entry : _indexingConn->iterate("")) {
+        if (entry.st_ctimespec > info.lastIndexing) {
+            DLOG("Collection " << this << " found new file " << entry.path)
+            /* TODO: check if the file is not already indexed */
 
-                    /* add the filepath */
-                    const auto path =
-                        std::filesystem::proximate(entry.path(), _indexingPath)
-                        .string();
-                    const auto lenght = static_cast<lenght_t>(path.size());
-                    _filepaths.seekp(0, std::ios::end);
-                    const auto offset = static_cast<offset_t>(
-                        _filepaths.tellp());
-                    _filepaths.write(&path[0], lenght);
+            /* add the filepath */
+            const auto lenght = static_cast<lenght_t>(entry.path.size());
+            _filepaths.seekp(0, std::ios::end);
+            const auto offset = static_cast<offset_t>(_filepaths.tellp());
+            _filepaths.write(&entry.path[0], lenght);
 
-                    /* add the mapping */
-                    const MapNode node = {offset, lenght};
-                    fileId_t id;
-                    if (!_availableIds.empty()) {
-                        /* use an unused id instead of a newer one */
-                        const auto pos = _availableIds.begin();
-                        id = *pos;
-                        _mapping.seekp(id * sizeof(MapNode));
-                        _availableIds.erase(pos);
-                    } else {
-                        id = static_cast<fileId_t>(_files.size());
-                        _mapping.seekp(0, std::ios::end);
-                    }
-
-                    Serialize(_mapping, node);
-
-                    /* add to _files */
-                    _files.insert(File(id, this));
-
-                    added.insert(id);
-
-                    if (filetime > mostRecentTime) {
-                        mostRecentTime = filetime;
-                    }
-                }
+            /* add the mapping */
+            const MapNode node = {offset, lenght};
+            fileId_t id;
+            if (!_availableIds.empty()) {
+                /* use an unused id instead of a newer one */
+                const auto pos = _availableIds.begin();
+                id = *pos;
+                _mapping.seekp(id * sizeof(MapNode));
+                _availableIds.erase(pos);
             } else {
-                ELOG("Collection " << this << " failed to get the metadata of "
-                     << entry << ". This file is ignored.")
+                id = static_cast<fileId_t>(_files.size());
+                _mapping.seekp(0, std::ios::end);
+            }
+
+            Serialize(_mapping, node);
+
+            /* add to _files */
+            _files.insert(File(id, this));
+
+            added.insert(id);
+
+            if (entry.st_ctimespec > mostRecentTime) {
+                mostRecentTime = entry.st_ctimespec;
             }
         }
     }
@@ -172,9 +154,9 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
 
     /* update info's file */
     {
-        std::ofstream file(_storingPath / INFO_FILE, std::ios::trunc);
+        std::ofstream file(_tmpPath / INFO_FILE, std::ios::trunc);
         if (!file.is_open()) {
-            throw std::runtime_error("Cannot open file " + (_storingPath /
+            throw std::runtime_error("Cannot open file " + (_tmpPath /
                                      INFO_FILE).string());
         }
         Serialize(file, info);
@@ -183,14 +165,19 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
 
     _mapping.flush();
     _filepaths.flush();
+    pushStored();
 }
 
 void Collection::defragment() {
+    DLOG("Collection " << this << " is defragmenting")
+
+    pullStored();
+
     /* find and remove unused chunks */
     std::vector<std::pair<offset_t, size_t>> chunks;
     {
         /* create a temporary file for the new content */
-        const auto tmpPath = _storingPath / FILEPATHS_FILE TMP_SUFFIX;
+        const auto tmpPath = _tmpPath / FILEPATHS_FILE TMP_SUFFIX;
         std::ofstream tmpfile(tmpPath, std::ios::trunc);
         if (!tmpfile.is_open()) {
             std::ostringstream msg;
@@ -219,7 +206,7 @@ void Collection::defragment() {
 
         /* remove the former file and make the temporary one the new one */
         _filepaths.close();
-        const auto path = _storingPath / FILEPATHS_FILE;
+        const auto path = _tmpPath / FILEPATHS_FILE;
         if (std::remove(path.c_str()) != 0) {
             std::ostringstream msg;
             msg << "Unable to remove file " << path;
@@ -230,8 +217,8 @@ void Collection::defragment() {
             msg << "Unable to rename file " << tmpPath << " to " << path;
             throw std::runtime_error(msg.str());
         }
-        _filepaths = OpenOrCreateFile(path.c_str(), std::ios::in |
-                                      std::ios::out | std::ios::binary);
+        _filepaths = std::fstream(path.c_str(), std::ios::in | std::ios::out |
+                                  std::ios::binary);
     }
     DLOG("Collection " << this << " found " << chunks.size()
          << " chunks to remove")
@@ -258,11 +245,13 @@ void Collection::defragment() {
             prevTellp = _mapping.tellp();
         }
         if (!_mapping.eof() && _mapping.fail()) {
-            throw std::runtime_error("Error reading " + (_storingPath /
+            throw std::runtime_error("Error reading " + (_tmpPath /
                                      MAPPING_FILE).string());
         }
         _mapping.clear();
     }
+
+    pushStored();
 }
 
 std::string Collection::getFilePath(fileId_t id) {
@@ -286,13 +275,13 @@ std::string Collection::getFilePath(fileId_t id) {
 }
 
 fileBuf_t Collection::read(fileId_t id) {
-    const auto filepath = _indexingPath / getFilePath(id);
-    return _conn->read(filepath.c_str());
+    const auto filepath = getFilePath(id);
+    return _indexingConn->read(filepath.c_str());
 }
 
 fileBuf_t Collection::preview(fileId_t id) {
     const auto filepath = getPreviewFilePath(id);
-    return _conn->read(filepath.c_str());
+    return _indexingConn->read(filepath.c_str());
 }
 
 std::unordered_set<File>::const_iterator Collection::begin() const {
@@ -305,6 +294,77 @@ std::unordered_set<File>::const_iterator Collection::end() const {
 
 size_t Collection::size() const {
     return _files.size();
+}
+
+void Collection::pullStored() {
+    /* TODO: MD5 check? */
+    DLOG("Collection " << this << " is pulling stored files")
+    if (_mapping.is_open()) {
+        _mapping.close();
+    }
+    if (_filepaths.is_open()) {
+        _filepaths.close();
+    }
+    {
+        const auto path = _tmpPath / MAPPING_FILE;
+        if (_storingConn->exists(MAPPING_FILE)) {
+            _storingConn->download(MAPPING_FILE, path.c_str());
+            _mapping = std::fstream(path.c_str(), std::ios::in |
+                                    std::ios::out | std::ios::binary);
+        } else {
+            _mapping = std::fstream(path.c_str(), std::ios::in |
+                                    std::ios::out | std::ios::binary |
+                                    std::ios::trunc);
+        }
+        if (!_mapping.is_open()) {
+            std::ostringstream msg;
+            msg << "Cannot open file " << path;
+            throw std::runtime_error(msg.str());
+        }
+    }
+    {
+        const auto path = _tmpPath / FILEPATHS_FILE;
+        if (_storingConn->exists(FILEPATHS_FILE)) {
+            _storingConn->download(FILEPATHS_FILE, path.c_str());
+            _filepaths = std::fstream(path.c_str(), std::ios::in |
+                                    std::ios::out | std::ios::binary);
+        } else {
+            _filepaths = std::fstream(path.c_str(), std::ios::in |
+                                    std::ios::out | std::ios::binary |
+                                    std::ios::trunc);
+        }
+        if (!_filepaths.is_open()) {
+            std::ostringstream msg;
+            msg << "Cannot open file " << path;
+            throw std::runtime_error(msg.str());
+        }
+    }
+    {
+        const auto path = _tmpPath / INFO_FILE;
+        if (_storingConn->exists(INFO_FILE)) {
+            _storingConn->download(INFO_FILE, path.c_str());
+        } else {
+            std::fstream file(path.c_str(), std::ios::in | std::ios::out |
+                              std::ios::binary | std::ios::trunc);
+            file.close();
+        }
+    }
+}
+
+void Collection::pushStored() {
+    DLOG("Collection " << this << " is pushing stored files")
+    {
+        const auto path = _tmpPath / MAPPING_FILE;
+        _storingConn->upload(path.c_str(), MAPPING_FILE);
+    }
+    {
+        const auto path = _tmpPath / FILEPATHS_FILE;
+        _storingConn->upload(path.c_str(), FILEPATHS_FILE);
+    }
+    {
+        const auto path = _tmpPath / INFO_FILE;
+        _storingConn->upload(path.c_str(), INFO_FILE);
+    }
 }
 
 std::string Collection::getPreviewFilePath(fileId_t id) const {

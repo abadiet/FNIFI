@@ -1,10 +1,7 @@
 @startuml
 
-skinparam groupinheritance 2
-
 package fnifi {
     class FNIFI {
-        -_conns : std::vector<IConnection*>
         -_colls : std::vector<Collection*>
         -_sortingAlgo : sxeval::SXEval<expr_t>
         -_filteringAlgo : sxeval::SXEval<expr_t>
@@ -13,8 +10,8 @@ package fnifi {
         -_sortFiltFiles : std::vector<File*>
         -_storingConn : IConnection*
         -_storingPath : std::string
-        +FNIFI(conns : std::vector<IConnection*>&, colls : std::vector<Collection*>&,
-        storingConn : IConnection*, storingPath : const char*)
+        +FNIFI(colls : std::vector<Collection*>&, storingConn : IConnection*,
+        storingPath : const char*)
         +index()
         +defragment()
         +sort(exp : const char*)
@@ -51,13 +48,15 @@ package fnifi {
         }
 
         class Collection extends IFileHelper {
-            -_conn : IConnection*
-            -_indexingPath : const std::filesystem::path
-            -_storingPath : const std::filesystem::path
+            -_indexingConn : IConnection*
+            -_storingConn : IConnection*
+            -_tmpPath : const char*
             -_files : std::unordered_set<File>
             -_mapping : std::fstream
             -_filepaths : std::fstream
-            +Collection(conn : IConnection*, indexingPath : const char*,
+            -_availableIds : std::unordered_set<filedId_t>
+            +Collection(indexingConn : IConnection*,
+            storingConn : IConnection*, tmpPath : const char*,
             storingPath : const char*)
             +~Collection()
             +index(removed : std::unordered_set<fileId_t>&,
@@ -66,21 +65,55 @@ package fnifi {
             +getFilePath(id : fileId_t) : std::string
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
-            +begin()
-            +end()
-            +size()
+            +begin() : std::unordered_set<File>::const_iterator
+            +end() : std::unordered_set<File>::const_iterator
+            +size() : size_t
             -getPreviewFilePath(id : fileId_t) : std::string
+            -pullStored()
+            -pushStored()
         }
     }
 
     package connection {
+        struct DirectoryIterator::Entry {
+            +path : std::string
+            +st_ctimespec : struct timespec
+            +operator==(other : const Entry&)
+        }
+
+        class DirectoryIterator {
+            -_entries : std::vector<Entry, EntryHash>
+            +DirectoryIterator(its : std::filesystem::recursive_directory_iterator,
+            path : const char*)
+            +DirectoryIterator(dirit : const DirectoryEntry&, path : const char*)
+            +begin() : std::vector<Entry, EntryHash>::const_iterator
+            +end() : std::vector<Entry, EntryHash>::const_iterator
+            +size() : size_t
+        }
+
         interface IConnection {
             +connect()
             +disconnect()
-            +iterate(path : const char*) : std::filesystem::recursive_directory_iterator
+            +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
+            +download(from : const char*, to : const char*)
+            +upload(from : const char*, to : const char*)
+            +remove(filepath : const char*)
+        }
+
+        class Relative extends IConnection {
+            -_conn : const IConnection*
+            -_path : std::string
+            +connect()
+            +disconnect()
+            +iterate(path : const char*) : DirectoryIterator
+            +exists(filepath : const char*) : bool
+            +read(filepath : const char*) : fileBuf_t
+            +write(filepath : const char*, buffer : const fileBuf_t&)
+            +download(from : const char*, to : const char*)
+            +upload(from : const char*, to : const char*)
             +remove(filepath : const char*)
         }
 
@@ -88,10 +121,12 @@ package fnifi {
             +SMB(addr : const char*, user : const char*, pwd : const char*)
             +connect()
             +disconnect()
-            +iterate(path : const char*) : std::filesystem::recursive_directory_iterator
+            +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
+            +download(from : const char*, to : const char*)
+            +upload(from : const char*, to : const char*)
             +remove(filepath : const char*)
         }
 
@@ -99,22 +134,27 @@ package fnifi {
             +Local()
             +connect()
             +disconnect()
-            +iterate(path : const char*) : std::filesystem::recursive_directory_iterator
+            +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
+            +download(from : const char*, to : const char*)
+            +upload(from : const char*, to : const char*)
             +remove(filepath : const char*)
         }
     }
 
-    FNIFI o--> IConnection : 0..*\n_conns
     FNIFI o--> Collection : 0..*\n_colls
-    Collection *--> File : 0..*\n_files
     FNIFI o--> File : 0..*\n_sortedFiles
     FNIFI o--> File : 0..*\n_filteredFiles
     FNIFI o--> File : 0..*\n_sortFiltFiles
+    FNIFI o--> IConnection : 1..1\n_storingConn
     File o--> IFileHelper : 1..1\n_coll
-    Collection o--> IConnection : 1..1\n_conn
+    Collection o--> IConnection : 1..1\n_indexingConn
+    Collection o--> IConnection : 1..1\n_storingConn
+    Collection *--> File : 0..*\n_files
+    Relative o--> IConnection : 1..1\n_conn
+    DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 }
 
 @enduml

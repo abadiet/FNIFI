@@ -1,6 +1,7 @@
 #include "fnifi/connection/Local.hpp"
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 
 using namespace fnifi;
@@ -12,8 +13,10 @@ void Local::connect() {}
 
 void Local::disconnect() {}
 
-std::filesystem::recursive_directory_iterator Local::iterate(const char* path) {
-    return std::filesystem::recursive_directory_iterator(path);
+DirectoryIterator Local::iterate(const char* path)
+{
+    return DirectoryIterator(
+        std::filesystem::recursive_directory_iterator(path), "");
 }
 
 bool Local::exists(const char* filepath) {
@@ -41,6 +44,18 @@ void Local::write(const char* filepath, const fileBuf_t& buffer) {
     }
     file.write(reinterpret_cast<const char*>(buffer.data()),
                static_cast<std::streamsize>(buffer.size()));
+}
+
+void Local::download(const char* from, const char* to) {
+    std::filesystem::copy(from, to,
+                          std::filesystem::copy_options::overwrite_existing |
+                          std::filesystem::copy_options::recursive);
+}
+
+void Local::upload(const char* from, const char* to) {
+    std::filesystem::copy(from, to,
+                          std::filesystem::copy_options::overwrite_existing |
+                          std::filesystem::copy_options::recursive);
 }
 
 void Local::remove(const char* filepath) {

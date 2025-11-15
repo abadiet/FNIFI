@@ -46,8 +46,6 @@ std::istream& Deserialize(std::istream& is, std::vector<T>& var);
 
 bool operator>(const timespec& lhs, const timespec& rhs);
 
-std::fstream OpenOrCreateFile(const char* filepath, std::ios::openmode mode);
-
 }  /* namespace fnifi */
 
 
@@ -91,21 +89,6 @@ inline bool fnifi::operator>(const timespec& lhs, const timespec& rhs) {
         return lhs.tv_nsec > rhs.tv_nsec;
     }
     return lhs.tv_sec > rhs.tv_sec;
-}
-
-inline std::fstream fnifi::OpenOrCreateFile(const char* filepath,
-                                            std::ios::openmode mode)
-{
-    std::fstream file(filepath, mode);
-    if (!file.is_open()) {
-        file.open(filepath, mode | std::ios::trunc);
-        if (!file.is_open()) {
-            std::ostringstream msg;
-            msg << "Cannot open file " << filepath;
-            throw std::runtime_error(msg.str());
-        }
-    }
-    return file;
 }
 
 #endif  /* FNIFI_UTILS_HPP */

@@ -13,8 +13,7 @@ namespace fnifi {
 
 class FNIFI {
 public:
-    FNIFI(std::vector<connection::IConnection*>& conns,
-          std::vector<file::Collection*>& colls,
+    FNIFI(std::vector<file::Collection*>& colls,
           connection::IConnection* storingConn, const char* storingPath);
     void index();
     void defragment();
@@ -25,7 +24,6 @@ public:
     std::vector<const file::File*>::const_iterator end() const;
 
 private:
-    std::vector<connection::IConnection*> _conns;
     std::vector<file::Collection*> _colls;
     sxeval::SXEval<expr_t> _sortingAlgo;
     sxeval::SXEval<expr_t> _filteringAlgo;

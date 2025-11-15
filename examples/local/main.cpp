@@ -2,28 +2,35 @@
 #include <fnifi/file/Collection.hpp>
 #include <fnifi/file/File.hpp>
 #include <fnifi/connection/Local.hpp>
+#include <fnifi/connection/Relative.hpp>
 #include <iostream>
 
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
-        std::cout << "Usage: " << argv[0] << " <storingPath> <indexingPath0> "
-            "... <indexingPathN>";
+    if (argc < 3 || argc % 2 != 0) {
+        std::cout << "Usage: " << argv[0]
+            << " <tmpPath> <storingPath0> <indexingPath0> ... <storingPathN>"
+            " <indexingPathN>";
         return 1;
     }
 
-    /* Connections */
-    fnifi::connection::Local conn;
-    std::vector<fnifi::connection::IConnection*> conns({&conn});
-
     /* Collections */
+    fnifi::connection::Local localConn;
+    std::vector<fnifi::connection::IConnection*> conns;
     std::vector<fnifi::file::Collection*> colls;
-    for (int i = 2; i < argc; ++i) {
-        colls.push_back(new fnifi::file::Collection(&conn, argv[i], argv[1]));
+    for (int i = 2; i < argc; i += 2) {
+        const auto storingPath = new fnifi::connection::Relative(&localConn,
+                                                                 argv[i]);
+        const auto indexingPath = new fnifi::connection::Relative(&localConn,
+                                                                  argv[i + 1]);
+        conns.push_back(storingPath);
+        conns.push_back(indexingPath);
+        colls.push_back(new fnifi::file::Collection(indexingPath, storingPath,
+                                                    argv[1]));
     }
 
     /* File indexing */
-    fnifi::FNIFI fi(conns, colls, &conn, argv[1]);
+    fnifi::FNIFI fi(colls, &localConn, argv[1]);
 
     /* Defragment to optimize disk usage */
     fi.defragment();
@@ -40,6 +47,9 @@ int main(int argc, char** argv) {
     /* Cleaning */
     for (auto& coll : colls) {
         delete coll;
+    }
+    for (auto& conn : conns) {
+        delete conn;
     }
 
     return 0;

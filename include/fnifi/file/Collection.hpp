@@ -5,9 +5,9 @@
 #include "fnifi/file/File.hpp"
 #include "fnifi/utils.hpp"
 #include <unordered_set>
+#include <filesystem>
 #include <string>
 #include <fstream>
-#include <filesystem>
 #include <time.h>
 
 
@@ -16,8 +16,8 @@ namespace file {
 
 class Collection : virtual public IFileHelper {
 public:
-    Collection(connection::IConnection* conn, const char* indexingPath,
-               const char* storingPath);
+    Collection(connection::IConnection* indexingConn,
+               connection::IConnection* storingConn, const char* tmpPath);
     ~Collection() override;
     void index(std::unordered_set<fileId_t>& removed,
                std::unordered_set<fileId_t>& added);
@@ -41,11 +41,13 @@ private:
     };
 
     std::string getPreviewFilePath(fileId_t id) const;
+    void pullStored();
+    void pushStored();
 
     std::unordered_set<File> _files;
-    connection::IConnection* _conn;
-    const std::filesystem::path _indexingPath;
-    const std::filesystem::path _storingPath;
+    connection::IConnection* _indexingConn;
+    connection::IConnection* _storingConn;
+    std::filesystem::path _tmpPath;
     std::fstream _mapping;
     std::fstream _filepaths;
     std::unordered_set<fileId_t> _availableIds;
