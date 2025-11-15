@@ -16,6 +16,7 @@ public:
     void disconnect() override;
     DirectoryIterator iterate(const char* path) override;
     bool exists(const char* filepath) override;
+    struct stat getStats(const char* filepath) override;
     fileBuf_t read(const char* filepath) override;
     void write(const char* filepath, const fileBuf_t& buffer) override;
     void download(const char* from, const char* to) override;

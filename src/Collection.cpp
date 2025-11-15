@@ -55,16 +55,35 @@ Collection::~Collection() {
 }
 
 void Collection::index(std::unordered_set<fileId_t>& removed,
-                       std::unordered_set<fileId_t>& added)
+                       std::unordered_set<fileId_t>& added,
+                       std::unordered_set<fileId_t>& modified)
 {
     DLOG("Collection " << this << " is indexing")
 
     pullStored();
 
-    /* unindex removed files */
+    /* get current info, including last indexing time */
+    Info info;
+    {
+        const auto filepath = _tmpPath / INFO_FILE;
+        std::ifstream file(filepath, std::ios::ate);
+        if (!file.is_open()) {
+            throw std::runtime_error("Cannot open file " +
+                                     filepath.string());
+        }
+        if (file.tellg() > 0) {
+            /* the file is not empty */
+            file.seekg(0);
+            Deserialize(file, info);
+        }
+        file.close();
+    }
+
+    /* unindex removed files and detect the ones that changed */
     for (auto it = _files.begin(); it != _files.end();) {
         const auto path = it->getPath();
         if (!_indexingConn->exists(path.c_str())) {
+            /* the file has been remove */
             const auto id = it->getId();
 
             DLOG("Collection " << this << " realized that file " << path
@@ -88,40 +107,28 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
             removed.insert(id);
             it = _files.erase(it);
         } else {
+            if (it->getStats().st_mtimespec > info.lastIndexing) {
+                /* the file has changed */
+                modified.insert(it->getId());
+            }
+
             it++;
         }
     }
 
-    /* get current info, including last indexing time */
-    Info info;
-    {
-        const auto filepath = _tmpPath / INFO_FILE;
-        std::ifstream file(filepath, std::ios::ate);
-        if (!file.is_open()) {
-            throw std::runtime_error("Cannot open file " +
-                                     filepath.string());
-        }
-        if (file.tellg() > 0) {
-            /* the file is not empty */
-            file.seekg(0);
-            Deserialize(file, info);
-        }
-        file.close();
-    }
-
-    struct timespec mostRecentTime = info.lastIndexing;
-
     /* check for new files */
+    struct timespec mostRecentTime = info.lastIndexing;
     for (const auto& entry : _indexingConn->iterate("")) {
-        if (entry.st_ctimespec > info.lastIndexing) {
-            DLOG("Collection " << this << " found new file " << entry.path)
+        const auto stats = _indexingConn->getStats(entry.c_str());
+        if (stats.st_ctimespec > info.lastIndexing) {
+            DLOG("Collection " << this << " found new file " << entry)
             /* TODO: check if the file is not already indexed */
 
             /* add the filepath */
-            const auto lenght = static_cast<lenght_t>(entry.path.size());
+            const auto lenght = static_cast<lenght_t>(entry.size());
             _filepaths.seekp(0, std::ios::end);
             const auto offset = static_cast<offset_t>(_filepaths.tellp());
-            _filepaths.write(&entry.path[0], lenght);
+            _filepaths.write(&entry[0], lenght);
 
             /* add the mapping */
             const MapNode node = {offset, lenght};
@@ -144,12 +151,11 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
 
             added.insert(id);
 
-            if (entry.st_ctimespec > mostRecentTime) {
-                mostRecentTime = entry.st_ctimespec;
+            if (stats.st_ctimespec > mostRecentTime) {
+                mostRecentTime = stats.st_ctimespec;
             }
         }
     }
-
     info.lastIndexing = mostRecentTime;
 
     /* update info's file */
@@ -272,6 +278,11 @@ std::string Collection::getFilePath(fileId_t id) {
     _filepaths.read(&path[0], node.lenght);
 
     return path;
+}
+
+struct stat Collection::getStats(fileId_t id) {
+    const auto filepath = getFilePath(id);
+    return _indexingConn->getStats(filepath.c_str());
 }
 
 fileBuf_t Collection::read(fileId_t id) {

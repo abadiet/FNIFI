@@ -39,7 +39,8 @@ void FNIFI::index() {
     for (auto& coll : _colls) {
         std::unordered_set<fileId_t> removed;
         std::unordered_set<fileId_t> added;
-        coll->index(removed, added);
+        std::unordered_set<fileId_t> modified;
+        coll->index(removed, added, modified);
 
         /* TODO: update thanks to added and removed sets */
     }

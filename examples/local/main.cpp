@@ -16,17 +16,20 @@ int main(int argc, char** argv) {
 
     /* Collections */
     fnifi::connection::Local localConn;
+    localConn.connect();
     std::vector<fnifi::connection::IConnection*> conns;
     std::vector<fnifi::file::Collection*> colls;
     for (int i = 2; i < argc; i += 2) {
-        const auto storingPath = new fnifi::connection::Relative(&localConn,
-                                                                 argv[i]);
-        const auto indexingPath = new fnifi::connection::Relative(&localConn,
-                                                                  argv[i + 1]);
-        conns.push_back(storingPath);
-        conns.push_back(indexingPath);
-        colls.push_back(new fnifi::file::Collection(indexingPath, storingPath,
-                                                    argv[1]));
+        const auto storing = new fnifi::connection::Relative(&localConn,
+                                                             argv[i]);
+        const auto indexing = new fnifi::connection::Relative(&localConn,
+                                                              argv[i + 1]);
+        storing->connect();
+        indexing->connect();
+        conns.push_back(storing);
+        conns.push_back(indexing);
+        colls.push_back(new fnifi::file::Collection(indexing, storing, argv[1])
+                        );
     }
 
     /* File indexing */
@@ -43,14 +46,16 @@ int main(int argc, char** argv) {
         std::cout << std::endl;
     }
 
-
     /* Cleaning */
     for (auto& coll : colls) {
         delete coll;
     }
     for (auto& conn : conns) {
+        conn->disconnect();
+    }
+    localConn.disconnect();
+    for (auto& conn : conns) {
         delete conn;
     }
-
     return 0;
 }

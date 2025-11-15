@@ -27,6 +27,11 @@ bool Relative::exists(const char* filepath) {
     return _conn->exists(abspath.c_str());
 }
 
+struct stat Relative::getStats(const char* filepath) {
+    const auto abspath = _path / filepath;
+    return _conn->getStats(abspath.c_str());
+}
+
 fileBuf_t Relative::read(const char* filepath) {
     const auto abspath = _path / filepath;
     return _conn->read(abspath.c_str());

@@ -4,6 +4,7 @@
 #include "fnifi/file/IFileHelper.hpp"
 #include "fnifi/file/MetadataType.hpp"
 #include "fnifi/utils.hpp"
+#include <sys/stat.h>
 #include <exiv2/exiv2.hpp>
 #include <string>
 #include <ostream>
@@ -18,6 +19,7 @@ public:
     bool operator==(const File& other) const;
     fileId_t getId() const;
     std::string getPath() const;
+    struct stat getStats() const;
     std::ostream& getMetadata(std::ostream& os, MetadataType type,
                               const char* key) const;
     fileBuf_t preview() const;

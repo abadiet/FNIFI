@@ -30,6 +30,7 @@ package fnifi {
 
         interface IFileHelper {
             +getFilePath(id : fileId_t) : std::string
+            +getStats(id : fileId_t) : struct stat
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
         }
@@ -41,6 +42,7 @@ package fnifi {
             +operator==(other : const File&) : bool
             +getId() : fileId_t
             +getPath() : std::string
+            +getStats() : struct stat
             +getMetadata(os : std::ostream&, type : MetadataType,
             key : const char*) : std::ostream&
             +preview() : fileBuf_t
@@ -60,9 +62,10 @@ package fnifi {
             storingPath : const char*)
             +~Collection()
             +index(removed : std::unordered_set<fileId_t>&,
-            added : std::unordered_set<fileId_t>&)
+            added : std::unordered_set<fileId_t>&, modified : std::unordered_set<fileId_t>&)
             +defragment()
             +getFilePath(id : fileId_t) : std::string
+            +getStats(id : fileId_t) : struct stat
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +begin() : std::unordered_set<File>::const_iterator
@@ -75,19 +78,13 @@ package fnifi {
     }
 
     package connection {
-        struct DirectoryIterator::Entry {
-            +path : std::string
-            +st_ctimespec : struct timespec
-            +operator==(other : const Entry&)
-        }
-
         class DirectoryIterator {
-            -_entries : std::vector<Entry, EntryHash>
+            -_entries : std::vector<std::string>
             +DirectoryIterator(its : std::filesystem::recursive_directory_iterator,
             path : const char*)
             +DirectoryIterator(dirit : const DirectoryEntry&, path : const char*)
-            +begin() : std::vector<Entry, EntryHash>::const_iterator
-            +end() : std::vector<Entry, EntryHash>::const_iterator
+            +begin() : std::vector<std::string>::const_iterator
+            +end() : std::vector<std::string>::const_iterator
             +size() : size_t
         }
 
@@ -96,6 +93,7 @@ package fnifi {
             +disconnect()
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
+            +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +download(from : const char*, to : const char*)
@@ -106,10 +104,12 @@ package fnifi {
         class Relative extends IConnection {
             -_conn : const IConnection*
             -_path : std::string
+            +Relative(conn : IConnection*, path : const char*)
             +connect()
             +disconnect()
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
+            +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +download(from : const char*, to : const char*)
@@ -123,6 +123,7 @@ package fnifi {
             +disconnect()
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
+            +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +download(from : const char*, to : const char*)
@@ -136,6 +137,7 @@ package fnifi {
             +disconnect()
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
+            +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
             +write(filepath : const char*, buffer : const fileBuf_t&)
             +download(from : const char*, to : const char*)
@@ -154,7 +156,6 @@ package fnifi {
     Collection o--> IConnection : 1..1\n_storingConn
     Collection *--> File : 0..*\n_files
     Relative o--> IConnection : 1..1\n_conn
-    DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 }
 
 @enduml

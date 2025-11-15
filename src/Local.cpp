@@ -23,6 +23,16 @@ bool Local::exists(const char* filepath) {
     return std::filesystem::exists(filepath);
 }
 
+struct stat Local::getStats(const char* filepath) {
+    struct stat fileStat;
+    if (lstat(filepath, &fileStat) != 0) {
+        std::ostringstream msg;
+        msg << "Failed to get stats for '" << filepath << "'";
+        throw std::runtime_error(msg.str());
+    }
+    return fileStat;
+}
+
 fileBuf_t Local::read(const char* filepath) {
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {

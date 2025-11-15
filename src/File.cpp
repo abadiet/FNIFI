@@ -23,6 +23,10 @@ std::string File::getPath() const {
     return _helper->getFilePath(_id);
 }
 
+struct stat File::getStats() const {
+    return _helper->getStats(_id);
+}
+
 std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
                                 const char* key) const {
     const auto data = _helper->read(_id);

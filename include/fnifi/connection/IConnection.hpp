@@ -3,6 +3,7 @@
 
 #include "fnifi/utils.hpp"
 #include "fnifi/connection/DirectoryIterator.hpp"
+#include <sys/stat.h>
 
 
 namespace fnifi {
@@ -15,6 +16,7 @@ public:
     virtual void disconnect() = 0;
     virtual DirectoryIterator iterate(const char* path) = 0;
     virtual bool exists(const char* filepath) = 0;
+    virtual struct stat getStats(const char* filepath) = 0;
     virtual fileBuf_t read(const char* filepath) = 0;
     virtual void write(const char* filepath, const fileBuf_t& buffer) = 0;
     virtual void download(const char* from, const char* to) = 0;
