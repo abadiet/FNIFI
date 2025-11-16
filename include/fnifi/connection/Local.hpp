@@ -15,7 +15,9 @@ public:
     Local();
     void connect() override;
     void disconnect(bool agressive = false) override;
-    DirectoryIterator iterate(const char* path) override;
+    DirectoryIterator iterate(const char* path, bool recursive = true,
+                              bool files = true, bool folders = false
+                              ) override;
     bool exists(const char* filepath) override;
     struct stat getStats(const char* filepath) override;
     fileBuf_t read(const char* filepath) override;

@@ -8,6 +8,16 @@
 #include <chrono>
 #include <format>
 
+#ifdef _WIN32
+#include <winnt.h>
+#else  /* _WIN32 */
+#define FILE_ATTRIBUTE_DIRECTORY 0x10
+#define FILE_ATTRIBUTE_REPARSE_POINT 0x400
+#endif  /* _WIN32 */
+#define DOS_ISDIR(dos) ((dos & FILE_ATTRIBUTE_DIRECTORY) != 0)
+#define DOS_ISREG(dos)                                                        \
+    ((dos & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) == 0)
+
 #define UNUSED(x) (void)x
 #define TODO throw std::runtime_error("Not yet implemented");
 

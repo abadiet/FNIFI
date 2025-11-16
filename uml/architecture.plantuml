@@ -81,7 +81,10 @@ package fnifi {
         class DirectoryIterator {
             -_entries : std::vector<std::string>
             +DirectoryIterator(its : std::filesystem::recursive_directory_iterator,
-            path : const char*)
+            bool files, bool folders)
+            +DirectoryIterator(its : std::filesystem::directory_iterator,
+            bool files, bool folders)
+            +DirectoryIterator(data : void*, nextEntry : std::function<...>&)
             +DirectoryIterator(dirit : const DirectoryEntry&, path : const char*)
             +begin() : std::vector<std::string>::const_iterator
             +end() : std::vector<std::string>::const_iterator
@@ -91,7 +94,8 @@ package fnifi {
         interface IConnection {
             +connect()
             +disconnect(aggressive : bool := false)
-            +iterate(path : const char*) : DirectoryIterator
+            +iterate(path : const char*, recursive : bool := true,
+            files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
@@ -107,7 +111,8 @@ package fnifi {
             +Relative(conn : IConnection*, path : const char*)
             +connect()
             +disconnect(aggressive : bool := false)
-            +iterate(path : const char*) : DirectoryIterator
+            +iterate(path : const char*, recursive : bool := true,
+            files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
@@ -118,10 +123,14 @@ package fnifi {
         }
 
         class SMB extends IConnection {
+            -_userdata : struct UserData
+            -_ctx : SMBCCTX*
+            -_path : std::string
             +SMB(addr : const char*, user : const char*, pwd : const char*)
             +connect()
             +disconnect(aggressive : bool := false)
-            +iterate(path : const char*) : DirectoryIterator
+            +iterate(path : const char*, recursive : bool := true,
+            files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t
@@ -135,7 +144,8 @@ package fnifi {
             +Local()
             +connect()
             +disconnect(aggressive : bool := false)
-            +iterate(path : const char*) : DirectoryIterator
+            +iterate(path : const char*, recursive : bool := true,
+            files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
             +read(filepath : const char*) : fileBuf_t

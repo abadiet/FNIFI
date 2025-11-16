@@ -16,9 +16,12 @@ void Relative::disconnect(bool agressive) {
     _conn->disconnect(agressive);
 }
 
-DirectoryIterator Relative::iterate(const char* path) {
+DirectoryIterator Relative::iterate(const char* path, bool recursive,
+                                    bool files, bool folders)
+{
     const auto abspath = _path / path;
-    const auto dirit = _conn->iterate(abspath.c_str());
+    const auto dirit = _conn->iterate(abspath.c_str(), recursive, files,
+                                      folders);
     return DirectoryIterator(dirit, _path.c_str());
 }
 

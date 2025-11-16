@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
     /* Collections */
     fnifi::connection::Local localConn;
-    fnifi::connection::SMB smbConn(argv[2], argv[3], nullptr, argv[4], argv[5]
+    fnifi::connection::SMB smbConn(argv[2], argv[3], "", argv[4], argv[5]
                                    );
     fnifi::connection::Relative storing(&smbConn, argv[6]);
     fnifi::connection::Relative indexing(&smbConn, argv[7]);

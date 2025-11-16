@@ -70,29 +70,23 @@ void SMB::disconnect(bool aggresive) {
     }
 }
 
-DirectoryIterator SMB::iterate(const char* path) {
-    /* TODO: recursive */
+DirectoryIterator SMB::iterate(const char* path, bool recursive, bool files,
+                               bool folders)
+{
     const auto fullpath = _path + path;
-    auto dir = smbc_getFunctionOpendir(_ctx)(_ctx, fullpath.c_str());
-    if (!dir) {
+    auto rootdir = smbc_getFunctionOpendir(_ctx)(_ctx, fullpath.c_str());
+    if (!rootdir) {
         ELOG("SMB " << this << " failed to open the directory " << fullpath
              << ": " << strerror(errno))
         return DirectoryIterator();
     }
 
-    std::unordered_set<std::string> filepaths;
-    const std::string pathstr(path);
-    auto entry = smbc_getFunctionReaddir(_ctx)(_ctx, dir);
-    while (entry != nullptr) {
-        if (entry->smbc_type == SMBC_FILE) {
-            filepaths.insert(pathstr + "/" + entry->name);
-        }
-        entry = smbc_getFunctionReaddir(_ctx)(_ctx, dir);
-    }
+    NextEntryData data = {this, recursive, files, folders, {{rootdir, path}}};
+    DirectoryIterator iter(&data, nextEntry);
 
-    smbc_getFunctionClosedir(_ctx)(_ctx, dir);
+    /* note that rootdir has been close by DirectoryIterator */
 
-    return DirectoryIterator(filepaths);
+    return iter;
 }
 
 bool SMB::exists(const char* filepath) {
@@ -151,11 +145,13 @@ void SMB::write(const char* filepath, const fileBuf_t& buffer) {
         return;
     }
 
-    const auto len = smbc_getFunctionWrite(_ctx)(_ctx, file, buffer.data(),
-                                                 buffer.size());
-    if (len < 0 || static_cast<size_t>(len) != buffer.size()) {
-        ELOG("SMB " << this << " failed to write to " << path
-             << ": " << strerror(errno))
+    if (buffer.size() > 0) {
+        const auto len = smbc_getFunctionWrite(_ctx)(_ctx, file, buffer.data(),
+                                                     buffer.size());
+        if (len < 0 || static_cast<size_t>(len) != buffer.size()) {
+            ELOG("SMB " << this << " failed to write to " << path
+                 << ": " << strerror(errno))
+        }
     }
 
     if (smbc_getFunctionClose(_ctx)(_ctx, file) != 0) {
@@ -200,20 +196,83 @@ void SMB::get_auth_data_with_context_fn(SMBCCTX* c, const char* srv,
 {
     auto userdata = static_cast<UserData*>(smbc_getOptionUserData(c));
 
-    if (std::strcmp(srv, userdata->server) == 0 &&
-        std::strcmp(shr, userdata->share) == 0)
+    if (userdata->server == srv &&
+        userdata->share == shr)
     {
-        if (userdata->workgroup) {
-            std::strncpy(wg, userdata->workgroup,
+        if (userdata->workgroup != "") {
+            std::strncpy(wg, userdata->workgroup.data(),
                          static_cast<size_t>(wglen - 1));
         }
-        if (userdata->username) {
-            std::strncpy(un, userdata->username,
+        if (userdata->username != "") {
+            std::strncpy(un, userdata->username.data(),
                          static_cast<size_t>(unlen - 1));
         }
-        if (userdata->password) {
-            std::strncpy(pw, userdata->password,
+        if (userdata->password != "") {
+            std::strncpy(pw, userdata->password.data(),
                          static_cast<size_t>(pwlen - 1));
         }
     }
+}
+
+const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
+    auto d = reinterpret_cast<NextEntryData*>(data);
+
+    auto entry = smbc_getFunctionReaddirPlus(d->self->_ctx)(
+        d->self->_ctx, d->dirs.back().smb);
+    while (
+        entry != nullptr &&
+        !(d->files && DOS_ISREG(entry->attrs)) &&
+        !(
+            (d->folders || d->recursive) && DOS_ISDIR(entry->attrs) &&
+            (std::strcmp(entry->name, ".") != 0) &&
+            (std::strcmp(entry->name, "..") != 0)
+        )
+    ) {
+        DLOG("GOT " << entry->name)
+        entry = smbc_getFunctionReaddirPlus(d->self->_ctx)(d->self->_ctx,
+                                                           d->dirs.back().smb);
+    }
+
+    if (entry == nullptr) {
+        /* end of the current directory */
+        if (d->dirs.size() > 0) {
+            smbc_getFunctionClosedir(d->self->_ctx)(d->self->_ctx,
+                                                    d->dirs.back().smb);
+            d->dirs.pop_back();
+
+            if (d->dirs.size() > 0) {
+    DLOG("MOVE BACK TO " << d->dirs.back().path)
+                /* this was not the root dir */
+                return nextEntry(data, absname);
+            }
+        }
+
+        /* the process iterated over every single files */
+        return nullptr;
+    }
+
+    DLOG("GO FOR " << entry->name)
+
+    /* fix entry's name to be absolute */
+    absname = d->dirs.back().path + "/" + entry->name;
+
+    if (d->recursive && DOS_ISDIR(entry->attrs)) {
+        /* new directory */
+        const auto fullpath = d->self->_path + absname;
+        auto dir = smbc_getFunctionOpendir(d->self->_ctx)(d->self->_ctx,
+                                                          fullpath.c_str());
+        if (!dir) {
+            ELOG("SMB " << d->self << " failed to open the directory "
+                 << absname << ": " << strerror(errno))
+        }
+        d->dirs.push_back({dir, absname});
+
+    DLOG("MOVE TO " << d->dirs.back().path)
+        if (!d->folders) {
+            /* we do not care of folders */
+            return nextEntry(data, absname);
+        }
+    }
+
+    return entry;
 }

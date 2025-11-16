@@ -15,10 +15,16 @@ void Local::disconnect(bool agressive) {
     UNUSED(agressive);
 }
 
-DirectoryIterator Local::iterate(const char* path)
+DirectoryIterator Local::iterate(const char* path, bool recursive, bool files,
+                                 bool folders)
 {
-    return DirectoryIterator(
-        std::filesystem::recursive_directory_iterator(path), "");
+    if (recursive) {
+        return DirectoryIterator(
+            std::filesystem::recursive_directory_iterator(path), files, folders
+        );
+    }
+    return DirectoryIterator(std::filesystem::directory_iterator(path), files,
+                             folders);
 }
 
 bool Local::exists(const char* filepath) {
