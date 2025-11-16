@@ -14,20 +14,36 @@ namespace connection {
 
 class DirectoryIterator {
 public:
+    struct Entry {
+        const std::string path;
+        const struct timespec ctime;
+        bool operator==(const Entry& other) const;
+    };
+
+private:
+    struct EntryHash {
+        size_t operator()(
+            const fnifi::connection::DirectoryIterator::Entry& obj) const;
+    };
+
+public:
     DirectoryIterator();
-    DirectoryIterator(const std::filesystem::recursive_directory_iterator& its,
-                      bool files, bool folders);
-    DirectoryIterator(const std::filesystem::directory_iterator& its,
+    DirectoryIterator(
+        const std::filesystem::recursive_directory_iterator& entries,
+        bool files, bool folders);
+    DirectoryIterator(const std::filesystem::directory_iterator& entries,
                       bool files, bool folders);
     DirectoryIterator(void* data, const std::function<
                       const libsmb_file_info*(void*,std::string&)>& nextEntry);
     DirectoryIterator(const DirectoryIterator& dirit, const char* path);
-    std::unordered_set<std::string>::const_iterator begin() const;
-    std::unordered_set<std::string>::const_iterator end() const;
+    std::unordered_set<Entry, EntryHash>::const_iterator begin() const;
+    std::unordered_set<Entry, EntryHash>::const_iterator end() const;
     size_t size() const;
 
 private:
-    std::unordered_set<std::string> _entries;
+    void addEntry(const std::filesystem::directory_entry& entry, bool files,
+                  bool folders);
+    std::unordered_set<Entry, EntryHash> _entries;
 };
 
 }  /* nanemsapce connection */

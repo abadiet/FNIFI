@@ -78,17 +78,25 @@ package fnifi {
     }
 
     package connection {
+        struct DirectoryIterator::Entry {
+            +path : std::string
+            +ctime : struct timespec
+            +operator==(other : const Entry&)
+        }
+
         class DirectoryIterator {
-            -_entries : std::vector<std::string>
+            -_entries : std::vector<Entry, EntryHash>
             +DirectoryIterator(its : std::filesystem::recursive_directory_iterator,
             bool files, bool folders)
             +DirectoryIterator(its : std::filesystem::directory_iterator,
             bool files, bool folders)
             +DirectoryIterator(data : void*, nextEntry : std::function<...>&)
             +DirectoryIterator(dirit : const DirectoryEntry&, path : const char*)
-            +begin() : std::vector<std::string>::const_iterator
-            +end() : std::vector<std::string>::const_iterator
+            +begin() : std::vector<Entry, EntryHash>::const_iterator
+            +end() : std::vector<Entry, EntryHash>::const_iterator
             +size() : size_t
+            -{static} get_auth_data_with_context_fn(...)
+            -{static} nextEntry(data : void*, absname : std::string&) : const libsmb_file_info*
         }
 
         interface IConnection {
@@ -166,6 +174,7 @@ package fnifi {
     Collection o--> IConnection : 1..1\n_storingConn
     Collection *--> File : 0..*\n_files
     Relative o--> IConnection : 1..1\n_conn
+    DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 }
 
 @enduml

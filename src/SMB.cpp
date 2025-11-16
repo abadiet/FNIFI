@@ -1,6 +1,16 @@
 #include "fnifi/connection/SMB.hpp"
 #include "fnifi/utils.hpp"
 
+#ifdef _WIN32
+#include <winnt.h>
+#else  /* _WIN32 */
+#define FILE_ATTRIBUTE_DIRECTORY 0x10
+#define FILE_ATTRIBUTE_REPARSE_POINT 0x400
+#endif  /* _WIN32 */
+#define DOS_ISDIR(dos) ((dos & FILE_ATTRIBUTE_DIRECTORY) != 0)
+#define DOS_ISREG(dos)                                                        \
+    ((dos & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) == 0)
+
 #define BUFFER_SZ 4096
 
 
@@ -11,31 +21,18 @@ SMB::SMB(const char* server, const char* share, const char* workgroup,
          const char* username, const char* password)
 : _userdata({server, share, workgroup, username, password}), _ctx(nullptr)
 {
-    if (!server) {
+    if (!server || !share || !workgroup || !username || !password) {
         throw std::runtime_error("Trying to instantiate a SMB object with "
-                                 "server == nullptr");
+                                 "either server or share or workgroup or "
+                                 "username or password null");
     }
     std::ostringstream oss;
-    oss << "smb://";
-    /*
-    if (username) {
-        if (workgroup) {
-            oss << workgroup << ";";
-        }
-        oss << username;
-        if (password) {
-            oss << ":" << password;
-        }
-        oss << "@";
-    }
-    */
-    oss << server;
+    oss << "smb://" << server;
     if (share) {
         oss << "/" << share;
     }
     oss << "/";
     _path = oss.str();
-    DLOG(_path)
 }
 
 SMB::~SMB() {
@@ -52,9 +49,6 @@ void SMB::connect() {
         throw std::runtime_error("Cannot setup the SMB context");
     }
 
-#ifdef FNIFI_DEBUG
-    smbc_setDebug(_ctx, 1);
-#endif  /* FNIFI_DEBUG */
     smbc_setOptionUserData(_ctx, &_userdata);
     smbc_setFunctionAuthDataWithContext(_ctx,
                                         SMB::get_auth_data_with_context_fn);
@@ -228,7 +222,6 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
             (std::strcmp(entry->name, "..") != 0)
         )
     ) {
-        DLOG("GOT " << entry->name)
         entry = smbc_getFunctionReaddirPlus(d->self->_ctx)(d->self->_ctx,
                                                            d->dirs.back().smb);
     }
@@ -241,7 +234,6 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
             d->dirs.pop_back();
 
             if (d->dirs.size() > 0) {
-    DLOG("MOVE BACK TO " << d->dirs.back().path)
                 /* this was not the root dir */
                 return nextEntry(data, absname);
             }
@@ -250,8 +242,6 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
         /* the process iterated over every single files */
         return nullptr;
     }
-
-    DLOG("GO FOR " << entry->name)
 
     /* fix entry's name to be absolute */
     absname = d->dirs.back().path + "/" + entry->name;
@@ -267,7 +257,6 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
         }
         d->dirs.push_back({dir, absname});
 
-    DLOG("MOVE TO " << d->dirs.back().path)
         if (!d->folders) {
             /* we do not care of folders */
             return nextEntry(data, absname);

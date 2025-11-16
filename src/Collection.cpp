@@ -82,6 +82,8 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
     /* unindex removed files and detect the ones that changed */
     for (auto it = _files.begin(); it != _files.end();) {
         const auto path = it->getPath();
+        /* TODO optimization: look for stat, if none, deduced the file does
+         * not exists */
         if (!_indexingConn->exists(path.c_str())) {
             /* the file has been remove */
             const auto id = it->getId();
@@ -119,16 +121,15 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
     /* check for new files */
     struct timespec mostRecentTime = info.lastIndexing;
     for (const auto& entry : _indexingConn->iterate("")) {
-        const auto stats = _indexingConn->getStats(entry.c_str());
-        if (stats.st_ctimespec > info.lastIndexing) {
-            DLOG("Collection " << this << " found new file " << entry)
+        if (entry.ctime > info.lastIndexing) {
+            DLOG("Collection " << this << " found new file " << entry.path)
             /* TODO: check if the file is not already indexed */
 
             /* add the filepath */
-            const auto lenght = static_cast<lenght_t>(entry.size());
+            const auto lenght = static_cast<lenght_t>(entry.path.size());
             _filepaths.seekp(0, std::ios::end);
             const auto offset = static_cast<offset_t>(_filepaths.tellp());
-            _filepaths.write(&entry[0], lenght);
+            _filepaths.write(&entry.path[0], lenght);
 
             /* add the mapping */
             const MapNode node = {offset, lenght};
@@ -151,8 +152,8 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
 
             added.insert(id);
 
-            if (stats.st_ctimespec > mostRecentTime) {
-                mostRecentTime = stats.st_ctimespec;
+            if (entry.ctime > mostRecentTime) {
+                mostRecentTime = entry.ctime;
             }
         }
     }
