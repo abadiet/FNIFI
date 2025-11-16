@@ -13,7 +13,7 @@ class IConnection {
 public:
     virtual ~IConnection();
     virtual void connect() = 0;
-    virtual void disconnect() = 0;
+    virtual void disconnect(bool agressive = false) = 0;
     virtual DirectoryIterator iterate(const char* path) = 0;
     virtual bool exists(const char* filepath) = 0;
     virtual struct stat getStats(const char* filepath) = 0;

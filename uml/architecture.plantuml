@@ -90,7 +90,7 @@ package fnifi {
 
         interface IConnection {
             +connect()
-            +disconnect()
+            +disconnect(aggressive : bool := false)
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
@@ -106,7 +106,7 @@ package fnifi {
             -_path : std::string
             +Relative(conn : IConnection*, path : const char*)
             +connect()
-            +disconnect()
+            +disconnect(aggressive : bool := false)
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
@@ -120,7 +120,7 @@ package fnifi {
         class SMB extends IConnection {
             +SMB(addr : const char*, user : const char*, pwd : const char*)
             +connect()
-            +disconnect()
+            +disconnect(aggressive : bool := false)
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat
@@ -134,7 +134,7 @@ package fnifi {
         class Local extends IConnection {
             +Local()
             +connect()
-            +disconnect()
+            +disconnect(aggressive : bool := false)
             +iterate(path : const char*) : DirectoryIterator
             +exists(filepath : const char*) : bool
             +getStats(filepath : const char*) : struct stat

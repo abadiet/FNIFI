@@ -36,8 +36,15 @@ std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
         case EXIF:
         case IPTC:
             {
-                const auto image = Exiv2::ImageFactory::open(
-                    static_cast<const Exiv2::byte*>(data.data()), data.size());
+                Exiv2::Image::UniquePtr image;
+                try {
+                    image = Exiv2::ImageFactory::open(
+                        static_cast<const Exiv2::byte*>(data.data()),
+                        data.size());
+                } catch (Exiv2::Error&) {
+                    /* This is not an image */
+                    return os;
+                }
                 if (image.get() == nullptr) {
                     /* This is not an image */
                     return os;

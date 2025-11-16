@@ -12,8 +12,8 @@ void Relative::connect() {
     _conn->connect();
 }
 
-void Relative::disconnect() {
-    _conn->disconnect();
+void Relative::disconnect(bool agressive) {
+    _conn->disconnect(agressive);
 }
 
 DirectoryIterator Relative::iterate(const char* path) {

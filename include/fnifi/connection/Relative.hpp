@@ -13,7 +13,7 @@ class Relative : virtual public IConnection {
 public:
     Relative(IConnection* conn, const char* path);
     void connect() override;
-    void disconnect() override;
+    void disconnect(bool agressive = false) override;
     DirectoryIterator iterate(const char* path) override;
     bool exists(const char* filepath) override;
     struct stat getStats(const char* filepath) override;

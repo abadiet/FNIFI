@@ -12,8 +12,10 @@ namespace connection {
 
 class DirectoryIterator {
 public:
+    DirectoryIterator();
     DirectoryIterator(const std::filesystem::recursive_directory_iterator& its,
                       const char* path);
+    DirectoryIterator(const std::unordered_set<std::string>& entries);
     DirectoryIterator(const DirectoryIterator& dirit, const char* path);
     std::unordered_set<std::string>::const_iterator begin() const;
     std::unordered_set<std::string>::const_iterator end() const;

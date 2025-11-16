@@ -11,7 +11,9 @@ Local::Local() {}
 
 void Local::connect() {}
 
-void Local::disconnect() {}
+void Local::disconnect(bool agressive) {
+    UNUSED(agressive);
+}
 
 DirectoryIterator Local::iterate(const char* path)
 {

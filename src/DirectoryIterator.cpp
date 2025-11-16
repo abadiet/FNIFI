@@ -1,28 +1,29 @@
 #include "fnifi/connection/DirectoryIterator.hpp"
-#include "fnifi/utils.hpp"
 #include <sys/stat.h>
 
 
 using namespace fnifi;
 using namespace fnifi::connection;
 
+DirectoryIterator::DirectoryIterator() {
+}
+
 DirectoryIterator::DirectoryIterator(
     const std::filesystem::recursive_directory_iterator& its, const char* path)
 {
     for (const auto& it : its) {
         if (it.is_regular_file()) {
-            struct stat fileStat;
-            if (lstat(it.path().c_str(), &fileStat) == 0) {
-                const auto name = std::filesystem::proximate(it.path(), path)
-                    .string();
-                _entries.insert(name);
-            } else {
-                ELOG("DirectoryIterator " << this
-                     << " failed to get the metadata of " << it.path()
-                     << ". This file is ignored.")
-            }
+            const auto name = std::filesystem::proximate(it.path(), path)
+                .string();
+            _entries.insert(name);
         }
     }
+}
+
+DirectoryIterator::DirectoryIterator(
+    const std::unordered_set<std::string>& entries)
+: _entries(entries)
+{
 }
 
 DirectoryIterator::DirectoryIterator(const DirectoryIterator& dirit,

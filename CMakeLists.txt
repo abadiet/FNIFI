@@ -27,12 +27,14 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wconditional-uninitialized -Wassign-enum
     -Wunused-exception-parameter -Wcovered-switch-default
     -Wno-c++98-compat -Wno-c++98-compat-pedantic
-    -Wno-padded -Wno-switch-default ${SXEVAL_FLAGS}>
+    -Wno-padded -Wno-switch-default -Wno-unsafe-buffer-usage-in-libc-call
+    ${SXEVAL_FLAGS}>
     $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror -Wfloat-equal
     -Wundef -Wcast-align -Wwrite-strings -Wconversion
     -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
     -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
-    -Wimplicit-fallthrough -Wno-padded ${SXEVAL_FLAGS}>
+    -Wimplicit-fallthrough -Wno-padded -Wno-unsafe-buffer-usage-in-libc-call
+    ${SXEVAL_FLAGS}>
 )
 if(FNIFI_DEBUG)
     target_compile_options(${PROJECT_NAME} PRIVATE -DFNIFI_DEBUG)
@@ -59,7 +61,10 @@ endif()
 # Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
 find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
-target_link_libraries(${PROJECT_NAME} PUBLIC sxeval Exiv2::exiv2lib)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SMBCLIENT REQUIRED IMPORTED_TARGET smbclient)
+target_link_libraries(${PROJECT_NAME} PUBLIC sxeval Exiv2::exiv2lib
+    PkgConfig::SMBCLIENT)
 
 # UML
 if(BUILD_UML)

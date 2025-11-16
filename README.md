@@ -20,3 +20,4 @@
 ## Dependencies
 - [SXEval](https://github.com/abadiet/SXEval): S-expression interpreter (includded as a submodule)
 - [Exiv2](https://exiv2.orgl): Image metadata library
+- [Samba](https://www.samba.org): Server Message Block implementation
