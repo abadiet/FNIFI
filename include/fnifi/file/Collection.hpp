@@ -5,6 +5,7 @@
 #include "fnifi/file/File.hpp"
 #include "fnifi/utils.hpp"
 #include <unordered_set>
+#include <unordered_map>
 #include <filesystem>
 #include <string>
 #include <fstream>
@@ -19,16 +20,19 @@ public:
     Collection(connection::IConnection* indexingConn,
                connection::IConnection* storingConn, const char* tmpPath);
     ~Collection() override;
-    void index(std::unordered_set<fileId_t>& removed,
-               std::unordered_set<fileId_t>& added,
-               std::unordered_set<fileId_t>& modified);
+    void index(
+        std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
+        std::unordered_set<const file::File*>& added,
+        std::unordered_set<const file::File*>& modified);
     void defragment();
     std::string getFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
     fileBuf_t preview(fileId_t id) override;
     fileBuf_t read(fileId_t id) override;
-    std::unordered_set<File>::const_iterator begin() const;
-    std::unordered_set<File>::const_iterator end() const;
+    std::unordered_map<fileId_t, File>::const_iterator begin() const;
+    std::unordered_map<fileId_t, File>::const_iterator end() const;
+    std::unordered_map<fileId_t, File>::iterator begin();
+    std::unordered_map<fileId_t, File>::iterator end();
     size_t size() const;
 
 private:
@@ -46,7 +50,7 @@ private:
     void pullStored();
     void pushStored();
 
-    std::unordered_set<File> _files;
+    std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;
     connection::IConnection* _storingConn;
     std::filesystem::path _tmpPath;

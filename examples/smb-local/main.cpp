@@ -8,10 +8,11 @@
 
 
 int main(int argc, char** argv) {
-    if (argc != 8) {
+    if (argc != 10) {
         std::cout << "Usage: " << argv[0]
             << " <tmpPath> <SMBServer> <SMBShare> <SMBUsername> <SMBPassword> "
-            << "<SMBStoringPath> <SMBIndexingPath>";
+            << "<SMBStoringPath> <SMBIndexingPath> <LocalStoringPath> "
+            << "<LocalIndexingPath>";
         return 1;
     }
 
@@ -19,14 +20,25 @@ int main(int argc, char** argv) {
     fnifi::connection::Local localConn;
     fnifi::connection::SMB smbConn(argv[2], argv[3], "", argv[4], argv[5]
                                    );
-    fnifi::connection::Relative storing(&smbConn, argv[6]);
-    fnifi::connection::Relative indexing(&smbConn, argv[7]);
+    fnifi::connection::Relative smbStoring(&smbConn, argv[6]);
+    fnifi::connection::Relative smbIndexing(&smbConn, argv[7]);
+    fnifi::connection::Relative localStoring(&localConn, argv[8]);
+    fnifi::connection::Relative localIndexing(&localConn, argv[9]);
     localConn.connect();
     smbConn.connect();
-    storing.connect();
-    indexing.connect();
-    fnifi::file::Collection coll(&indexing, &storing, argv[1]);
-    std::vector<fnifi::file::Collection*> colls = {&coll};
+    smbStoring.connect();
+    smbIndexing.connect();
+    localStoring.connect();
+    localIndexing.connect();
+    std::string smbTmpPath(argv[1]);
+    smbTmpPath += "/smb";
+    std::string localTmpPath(argv[1]);
+    localTmpPath += "/local";
+    fnifi::file::Collection smbColl(&smbIndexing, &smbStoring,
+                                    smbTmpPath.c_str());
+    fnifi::file::Collection localColl(&localIndexing, &localStoring,
+                                      localTmpPath.c_str());
+    std::vector<fnifi::file::Collection*> colls = {&smbColl, &localColl};
 
     /* File indexing */
     fnifi::FNIFI fi(colls, &localConn, argv[1]);
@@ -45,8 +57,10 @@ int main(int argc, char** argv) {
     /* Cleaning */
     localConn.disconnect();
     smbConn.disconnect();
-    storing.disconnect();
-    indexing.disconnect();
+    smbStoring.disconnect();
+    smbIndexing.disconnect();
+    localStoring.disconnect();
+    localIndexing.disconnect();
 
     return 0;
 }

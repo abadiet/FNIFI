@@ -1,5 +1,5 @@
-#ifndef FNIFI_FILE_METADATATYPE
-#define FNIFI_FILE_METADATATYPE
+#ifndef FNIFI_FILE_METADATATYPE_HPP
+#define FNIFI_FILE_METADATATYPE_HPP
 
 
 namespace fnifi {
@@ -14,4 +14,4 @@ enum MetadataType {
 }  /* namespace file */
 }  /* namespace fnifi */
 
-#endif  /* FNIFI_FILE_METADATATYPE */
+#endif  /* FNIFI_FILE_METADATATYPE_HPP */

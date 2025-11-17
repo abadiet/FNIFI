@@ -28,7 +28,7 @@ Collection::Collection(connection::IConnection* indexingConn,
         fileId_t id = 0;
         while (Deserialize(_mapping, node)) {
             if (node.lenght > 0) {
-                _files.insert(File(id, this));
+                _files.insert({id, File(id, this)});
             } else {
                 _availableIds.insert(id);
             }
@@ -54,9 +54,10 @@ Collection::~Collection() {
     }
 }
 
-void Collection::index(std::unordered_set<fileId_t>& removed,
-                       std::unordered_set<fileId_t>& added,
-                       std::unordered_set<fileId_t>& modified)
+void Collection::index(
+    std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
+    std::unordered_set<const file::File*>& added,
+    std::unordered_set<const file::File*>& modified)
 {
     DLOG("Collection " << this << " is indexing")
 
@@ -81,12 +82,12 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
 
     /* unindex removed files and detect the ones that changed */
     for (auto it = _files.begin(); it != _files.end();) {
-        const auto path = it->getPath();
+        const auto path = it->second.getPath();
         /* TODO optimization: look for stat, if none, deduced the file does
          * not exists */
         if (!_indexingConn->exists(path.c_str())) {
             /* the file has been remove */
-            const auto id = it->getId();
+            const auto id = it->second.getId();
 
             DLOG("Collection " << this << " realized that file " << path
                  << " has been remove")
@@ -106,12 +107,12 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
                              std::streamsize(placeholderPath.size()));
 
             _availableIds.insert(id);
-            removed.insert(id);
+            removed.insert({&it->second, id});
             it = _files.erase(it);
         } else {
-            if (it->getStats().st_mtimespec > info.lastIndexing) {
+            if (it->second.getStats().st_mtimespec > info.lastIndexing) {
                 /* the file has changed */
-                modified.insert(it->getId());
+                modified.insert(&it->second);
             }
 
             it++;
@@ -148,9 +149,9 @@ void Collection::index(std::unordered_set<fileId_t>& removed,
             Serialize(_mapping, node);
 
             /* add to _files */
-            _files.insert(File(id, this));
+            _files.insert({id, File(id, this)});
 
-            added.insert(id);
+            added.insert(&_files.find(id)->second);
 
             if (entry.ctime > mostRecentTime) {
                 mostRecentTime = entry.ctime;
@@ -296,11 +297,19 @@ fileBuf_t Collection::preview(fileId_t id) {
     return _indexingConn->read(filepath.c_str());
 }
 
-std::unordered_set<File>::const_iterator Collection::begin() const {
+std::unordered_map<fileId_t, File>::const_iterator Collection::begin() const {
     return _files.begin();
 }
 
-std::unordered_set<File>::const_iterator Collection::end() const {
+std::unordered_map<fileId_t, File>::const_iterator Collection::end() const {
+    return _files.end();
+}
+
+std::unordered_map<fileId_t, File>::iterator Collection::begin() {
+    return _files.begin();
+}
+
+std::unordered_map<fileId_t, File>::iterator Collection::end() {
     return _files.end();
 }
 

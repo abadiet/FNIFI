@@ -39,11 +39,33 @@ int main(int argc, char** argv) {
     fi.defragment();
 
     /* Loop over the files */
-    for (const auto& file : fi) {
-        std::cout << file->getPath() << ": ";
+    std::cout << "Randomly loop over all the files:" << std::endl;
+    for (const auto file : fi) {
+        const auto ctime = file->getStats().st_ctimespec;
+        std::cout << file->getPath() << ": ctime="
+            << ctime.tv_sec << "s and " << ctime.tv_nsec
+            << "ns, Exif.Image.Model=";
         file->getMetadata(std::cout, fnifi::file::MetadataType::EXIF,
                           "Exif.Image.Model");
         std::cout << std::endl;
+    }
+
+    /* sort the files by ctime */
+    fi.sort("(+ ctime 0)");
+    std::cout << std::endl << "Sorting by ctime:" << std::endl;
+    for (const auto file : fi) {
+        const auto ctime = file->getStats().st_ctimespec;
+        std::cout << file->getPath() << ": ctime="
+            << S_TO_NS(ctime.tv_sec) + ctime.tv_nsec << "ns" << std::endl;
+    }
+
+    /* filter the files to keep ones with a odd ctime */
+    fi.filter("(% ctime 2)");
+    std::cout << std::endl << "Filtering to keep odd ctimes:" << std::endl;
+    for (const auto file : fi) {
+        const auto ctime = file->getStats().st_ctimespec;
+        std::cout << file->getPath() << ": ctime="
+            << S_TO_NS(ctime.tv_sec) + ctime.tv_nsec << "ns" << std::endl;
     }
 
     /* Cleaning */

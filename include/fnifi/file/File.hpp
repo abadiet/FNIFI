@@ -15,6 +15,10 @@ namespace file {
 
 class File {
 public:
+    struct pCompare {
+        bool operator()(const File* a, const File* b) const;
+    };
+
     File(fileId_t id, IFileHelper* helper);
     bool operator==(const File& other) const;
     fileId_t getId() const;
@@ -24,9 +28,14 @@ public:
                               const char* key) const;
     fileBuf_t preview() const;
     fileBuf_t read() const;
+    void setSortingScore(expr_t score);
+    void setIsFilteredOut(bool isFilteredOut);
+    bool isFilteredOut() const;
 
 private:
     const fileId_t _id;
+    expr_t _sort;
+    bool _filteredOut;
     IFileHelper* _helper;
 };
 
@@ -39,6 +48,15 @@ template<>
 struct hash<fnifi::file::File> {
     size_t operator()(const fnifi::file::File& obj) const {
         return std::hash<fnifi::fileId_t>()(obj.getId());
+    }
+};
+
+template<>
+struct hash<std::pair<const fnifi::file::File*, fnifi::fileId_t>> {
+    size_t operator()(const std::pair<const fnifi::file::File*,
+                      fnifi::fileId_t>& obj) const
+    {
+        return std::hash<fnifi::fileId_t>()(obj.second);
     }
 };
 

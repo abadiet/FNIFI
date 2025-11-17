@@ -28,12 +28,16 @@
 #define ELOG(x)
 #endif  /* FNIFI_DEBUG */
 
+#define S_TO_NS(x) (x * 1000000000)
+
+#define EMPTY_EXPR_T std::numeric_limits<expr_t>::max()
+
 
 namespace fnifi {
 
 typedef std::vector<unsigned char> fileBuf_t;
 typedef unsigned int fileId_t;
-typedef unsigned int expr_t;
+typedef long int expr_t;
 
 template <typename T>
 std::ostream& Serialize(std::ostream& os, const T& var);
@@ -47,7 +51,6 @@ std::istream& Deserialize(std::istream& is, std::vector<T>& var);
 bool operator>(const timespec& lhs, const timespec& rhs);
 
 }  /* namespace fnifi */
-
 
 /* IMPLEMENTATIONS */
 

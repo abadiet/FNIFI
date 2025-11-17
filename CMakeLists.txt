@@ -28,13 +28,13 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wunused-exception-parameter -Wcovered-switch-default
     -Wno-c++98-compat -Wno-c++98-compat-pedantic
     -Wno-padded -Wno-switch-default -Wno-unsafe-buffer-usage-in-libc-call
-    ${SXEVAL_FLAGS}>
+    -Wno-exit-time-destructors -Wno-global-constructors ${SXEVAL_FLAGS}>
     $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror -Wfloat-equal
     -Wundef -Wcast-align -Wwrite-strings -Wconversion
     -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
     -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
     -Wimplicit-fallthrough -Wno-padded -Wno-unsafe-buffer-usage-in-libc-call
-    ${SXEVAL_FLAGS}>
+    -Wno-exit-time-destructors -Wno-global-constructors ${SXEVAL_FLAGS}>
 )
 if(FNIFI_DEBUG)
     target_compile_options(${PROJECT_NAME} PRIVATE -DFNIFI_DEBUG)

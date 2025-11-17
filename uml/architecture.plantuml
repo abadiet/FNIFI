@@ -3,11 +3,10 @@
 package fnifi {
     class FNIFI {
         -_colls : std::vector<Collection*>
-        -_sortingAlgo : sxeval::SXEval<expr_t>
-        -_filteringAlgo : sxeval::SXEval<expr_t>
-        -_sortedFiles : std::vector<File*>
-        -_filteredFiles : std::vector<File*>
-        -_sortFiltFiles : std::vector<File*>
+        -_sortExpr : expression::Expression
+        -_filtExpr : expression::Expression
+        -_files : fileset_t
+        -_toRemove : std::unordered_set<const file::File*>&
         -_storingConn : IConnection*
         -_storingPath : std::string
         +FNIFI(colls : std::vector<Collection*>&, storingConn : IConnection*,
@@ -17,8 +16,58 @@ package fnifi {
         +sort(exp : const char*)
         +filter(exp : const char*)
         +getFiles() : const std::vector<File*>&
-        +begin() : const_iterator
-        +end() : const_iterator
+        +begin() : Iterator
+        +end() : Iterator
+    }
+
+    class FNIFI::Iterator {
+        -_p : fileset_t::const_iterator
+        -_toRemove : std::unordered_set<const file::File*>&
+        -_files : fileset_t&
+        +Iterator(...)
+        +operator*() : reference
+        +operator->() : pointer
+        +operator++() : Iterator&
+        +operator++(int) : Iterator
+        +operator==(other : const Iterator&) : bool
+        +operator!=(other : const Iterator&) : bool
+    }
+
+    package expression {
+        class Expression {
+            -_stored : std::fstream
+            -_storingPath = std::string
+            -_handler : std::function<expr_t&(const std::string&>
+            -_sxeval : sxeval::SXEval<expr_t>
+            -_vars : std::vector<struct RefVar>
+            -_maxId : fileId_t
+            -getValue(file : const file::File*) : expr_t
+            -{static} GetHash(s : const std::string&);
+            +Expression()
+            +build(expr : const std::string&, storingPath : const std::string&)
+            +run(file : const file::File*, noCache : bool := false)
+            +remove(id : fileId_t)
+        }
+
+        class Variable {
+            -_stored : std::fstream
+            -_maxId : fileId_t
+            -_type : const Type
+            -_key : const std::string
+            -{static} _built : std::unordered_map<std::string, Variable>
+            -getValue(file : const file::File*) : expr_t
+            +{static} Build(type : Type, key : const std::string&, storingPath : const char*)
+            +{static} GetType(name : const std::string&) : Type
+            +~Variable()
+            +get(file : const file::File*) : expr_t
+            +Variable(type : Type, key : const std::string&, storingPath : const char*)
+        }
+
+        enum Variable::Type {
+            +CTIME
+            +UNKNOWN
+        }
+
     }
 
     package file {
@@ -37,6 +86,8 @@ package fnifi {
 
         class File {
             -_id : const fileId_t
+            -_sort : expr_t
+            -_isFilteredOut : bool
             -_helper : const IFileHelper*
             +File(id : fileId_t, helper : const IFileHelper*)
             +operator==(other : const File&) : bool
@@ -47,29 +98,34 @@ package fnifi {
             key : const char*) : std::ostream&
             +preview() : fileBuf_t
             +read() : fileBuf_t
+            +setSortingScore(score : expr_t)
+            +setIsFilteredOut(isFilteredOut : bool)
+            +isFileteredOut() : boll
         }
 
         class Collection extends IFileHelper {
             -_indexingConn : IConnection*
             -_storingConn : IConnection*
-            -_tmpPath : const char*
-            -_files : std::unordered_set<File>
+            -_tmpPath : std::filesystem::path
+            -_files : std::unordered_map<fileId_t, File>
             -_mapping : std::fstream
             -_filepaths : std::fstream
             -_availableIds : std::unordered_set<filedId_t>
-            +Collection(indexingConn : IConnection*,
-            storingConn : IConnection*, tmpPath : const char*,
-            storingPath : const char*)
+            +Collection(indexingConn : IConnection*, storingConn : IConnection*,
+            tmpPath : const char*)
             +~Collection()
-            +index(removed : std::unordered_set<fileId_t>&,
-            added : std::unordered_set<fileId_t>&, modified : std::unordered_set<fileId_t>&)
+            +index(removed : std::unordered_set<std::pair<const file::File*, fileId_t>&,
+            added : std::unordered_set<const file::File*>&,
+            modified : std::unordered_set<const file::File*>&)
             +defragment()
             +getFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
-            +begin() : std::unordered_set<File>::const_iterator
-            +end() : std::unordered_set<File>::const_iterator
+            +begin() : std::unordered_map<fileId_t, File>::const_iterator
+            +end() : std::unordered_map<fileId_t, File>::const_iterator
+            +begin() : std::unordered_map<fileId_t, File>::iterator
+            +end() : std::unordered_map<fileId_t, File>::iterator
             +size() : size_t
             -getPreviewFilePath(id : fileId_t) : std::string
             -pullStored()
@@ -165,16 +221,19 @@ package fnifi {
     }
 
     FNIFI o--> Collection : 0..*\n_colls
-    FNIFI o--> File : 0..*\n_sortedFiles
-    FNIFI o--> File : 0..*\n_filteredFiles
-    FNIFI o--> File : 0..*\n_sortFiltFiles
     FNIFI o--> IConnection : 1..1\n_storingConn
+    FNIFI *--> Expression : 1..1\n_storExpr
+    FNIFI *--> Expression : 1..1\n_filtExpr
+    FNIFI o--> File : 0..*\n_files
+    FNIFI o--> File : 0..*\n_toRemove
     File o--> IFileHelper : 1..1\n_coll
     Collection o--> IConnection : 1..1\n_indexingConn
     Collection o--> IConnection : 1..1\n_storingConn
     Collection *--> File : 0..*\n_files
     Relative o--> IConnection : 1..1\n_conn
     DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
+    Expression *--> Variable : 0..*\n_vars
+    Variable *--> Variable::Type : 1..1\n_type
 }
 
 @enduml

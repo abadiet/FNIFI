@@ -5,8 +5,12 @@
 using namespace fnifi;
 using namespace fnifi::file;
 
+bool File::pCompare::operator()(const File* a, const File* b) const {
+    return a->_sort < b->_sort;
+}
+
 File::File(fileId_t id, IFileHelper* helper)
-: _id(id), _helper(helper)
+: _id(id), _filteredOut(false), _helper(helper)
 {
 
 }
@@ -93,4 +97,16 @@ fileBuf_t File::preview() const {
 
 fileBuf_t File::read() const {
     return _helper->read(_id);
+}
+
+void File::setSortingScore(expr_t score) {
+    _sort = score;
+}
+
+void File::setIsFilteredOut(bool isFilteredOut) {
+    _filteredOut = isFilteredOut;
+}
+
+bool File::isFilteredOut() const {
+    return _filteredOut;
 }
