@@ -1,5 +1,4 @@
 #include "fnifi/FNIFI.hpp"
-#include "fnifi/connection/IConnection.hpp"
 
 
 using namespace fnifi;
@@ -65,10 +64,9 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
 }
 
 FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
-             connection::IConnection* storingConn,
              const std::filesystem::path& storingPath)
 : _colls(colls), _sortExpr(nullptr), _filtExpr(nullptr),
-    _storingConn(storingConn), _storingPath(storingPath)
+    _storingPath(storingPath)
 {
     /* create the folder if needed */
     std::filesystem::create_directories(_storingPath);
@@ -80,8 +78,6 @@ FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
             _files.insert(&file.second);
         }
     }
-
-    UNUSED(_storingConn);
 }
 
 void FNIFI::defragment() {

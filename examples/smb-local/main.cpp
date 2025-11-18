@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     std::vector<fnifi::file::Collection*> colls = {&smbColl, &localColl};
 
     /* File indexing */
-    fnifi::FNIFI fi(colls, &localConn, argv[1]);
+    fnifi::FNIFI fi(colls, argv[1]);
 
     /* Defragment to optimize disk usage */
     fi.defragment();

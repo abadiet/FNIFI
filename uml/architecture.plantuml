@@ -12,9 +12,8 @@ package fnifi {
         -_filtExpr : std::unique_ptr<expression::Expression>
         -_files : fileset_t
         -_toRemove : std::unordered_set<const file::File*>&
-        -_storingConn : IConnection*
         -_storingPath : const std::filesystem::path
-        +FNIFI(colls : std::vector<Collection*>&, storingConn : IConnection*,
+        +FNIFI(colls : std::vector<Collection*>&,
         storingPath : const std::filesystem::path&)
         +index()
         +defragment()
@@ -70,7 +69,7 @@ package fnifi {
             colls : const std::vector<file::Collection*>&)
         }
 
-        enum Variable::Type {
+        enum Type {
             +CTIME
             +XMP
             +EXIF
@@ -99,7 +98,7 @@ package fnifi {
             +getId() : fileId_t
             +getPath() : std::string
             +getStats() : struct stat
-            +getMetadata(os : std::ostream&, type : expression::Variable::Type,
+            +getMetadata(os : std::ostream&, type : expression::Type,
             key : const std::string&) : std::ostream&
             +preview() : fileBuf_t
             +read() : fileBuf_t
@@ -248,11 +247,10 @@ end note
 Main *--> IConnection
 note on link
 <u>IConnection</u> instances are owns by the user program.
-Provided to both <u>FNIFI</u> anf <u>Collection</u> instances, they enable them
-to interact with the files.
+Provided to <u>Collection</u> instances (see <u>indexingConn</u> and
+<u>storingConn</u>), they enable them to interact with the files.
 end note
 FNIFI o--> Collection : 0..*\n_colls
-FNIFI o--> IConnection : 1..1\n_storingConn
 FNIFI *--> Expression : 1..1\n_storExpr
 FNIFI *--> Expression : 1..1\n_filtExpr
 FNIFI o--> File : 0..*\n_files
@@ -264,6 +262,6 @@ Collection *--> File : 0..*\n_files
 Relative o--> IConnection : 1..1\n_conn
 DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 Expression *--> Variable : 0..*\n_vars
-Variable *--> Variable::Type : 1..1\n_type
+Variable *--> Type : 1..1\n_type
 
 @enduml

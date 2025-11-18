@@ -1,7 +1,6 @@
 #ifndef FNIFI_FNIFI_HPP
 #define FNIFI_FNIFI_HPP
 
-#include "fnifi/connection/IConnection.hpp"
 #include "fnifi/file/Collection.hpp"
 #include "fnifi/file/File.hpp"
 #include "fnifi/expression/Expression.hpp"
@@ -45,7 +44,6 @@ public:
     };
 
     FNIFI(const std::vector<file::Collection*>& colls,
-          connection::IConnection* storignConn,
           const std::filesystem::path& storingPath);
     void index();
     void defragment();
@@ -62,7 +60,6 @@ private:
     std::unique_ptr<expression::Expression> _filtExpr;
     fileset_t _files;
     std::unordered_set<const file::File*> _toRemove;
-    connection::IConnection* _storingConn;
     const std::filesystem::path _storingPath;
 };
 
