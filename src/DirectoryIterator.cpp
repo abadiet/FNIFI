@@ -49,7 +49,7 @@ DirectoryIterator::DirectoryIterator(void* data, const std::function<
 }
 
 DirectoryIterator::DirectoryIterator(const DirectoryIterator& dirit,
-                                     const char* path)
+                                     const std::filesystem::path& path)
 {
     for (auto& entry : dirit._entries) {
         const auto name = std::filesystem::proximate(entry.path, path)
@@ -77,8 +77,8 @@ size_t DirectoryIterator::size() const {
 void DirectoryIterator::addEntry(const std::filesystem::directory_entry& entry,
                                  bool files, bool folders)
 {
-    if ((files && entry.is_regular_file()) || (folders && entry.is_directory()))
-    {
+    if ((files && entry.is_regular_file()) || (folders && entry.is_directory())
+    ) {
         struct stat fileStat;
         if (lstat(entry.path().c_str(), &fileStat) == 0) {
             _entries.insert({entry.path(), fileStat.st_ctimespec});

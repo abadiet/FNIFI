@@ -14,7 +14,8 @@ namespace expression {
 class Expression {
 public:
     Expression();
-    void build(const std::string& expr, const std::string& storingPath);
+    void build(const std::string& expr,
+               const std::filesystem::path& storingPath);
     expr_t run(const file::File* file, bool noCache = false);
     void remove(fileId_t id);
 
@@ -25,10 +26,9 @@ private:
     };
 
     expr_t getValue(const file::File* file);
-    static std::string GetHash(const std::string& s);
 
     std::fstream _stored;
-    std::string _storingPath;
+    std::filesystem::path _storingPath;
     std::function<expr_t&(const std::string&)> _handler;
     sxeval::SXEval<expr_t> _sxeval;
     std::vector<RefVar> _vars;

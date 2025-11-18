@@ -15,8 +15,8 @@ void Local::disconnect(bool agressive) {
     UNUSED(agressive);
 }
 
-DirectoryIterator Local::iterate(const char* path, bool recursive, bool files,
-                                 bool folders)
+DirectoryIterator Local::iterate(const std::filesystem::path& path,
+                                 bool recursive, bool files, bool folders)
 {
     if (recursive) {
         return DirectoryIterator(
@@ -27,13 +27,13 @@ DirectoryIterator Local::iterate(const char* path, bool recursive, bool files,
                              folders);
 }
 
-bool Local::exists(const char* filepath) {
+bool Local::exists(const std::filesystem::path& filepath) {
     return std::filesystem::exists(filepath);
 }
 
-struct stat Local::getStats(const char* filepath) {
+struct stat Local::getStats(const std::filesystem::path& filepath) {
     struct stat fileStat;
-    if (lstat(filepath, &fileStat) != 0) {
+    if (lstat(filepath.c_str(), &fileStat) != 0) {
         std::ostringstream msg;
         msg << "Failed to get stats for '" << filepath << "'";
         throw std::runtime_error(msg.str());
@@ -41,7 +41,7 @@ struct stat Local::getStats(const char* filepath) {
     return fileStat;
 }
 
-fileBuf_t Local::read(const char* filepath) {
+fileBuf_t Local::read(const std::filesystem::path& filepath) {
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
         std::ostringstream msg;
@@ -53,7 +53,9 @@ fileBuf_t Local::read(const char* filepath) {
     return buffer;
 }
 
-void Local::write(const char* filepath, const fileBuf_t& buffer) {
+void Local::write(const std::filesystem::path& filepath,
+                  const fileBuf_t& buffer)
+{
     std::ofstream file(filepath, std::ios::binary | std::ios::trunc);
     if (!file.is_open()) {
         std::ostringstream msg;
@@ -64,22 +66,30 @@ void Local::write(const char* filepath, const fileBuf_t& buffer) {
                static_cast<std::streamsize>(buffer.size()));
 }
 
-void Local::download(const char* from, const char* to) {
+void Local::download(const std::filesystem::path& from,
+                     const std::filesystem::path& to)
+{
     std::filesystem::copy(from, to,
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
 }
 
-void Local::upload(const char* from, const char* to) {
+void Local::upload(const std::filesystem::path& from,
+                   const std::filesystem::path& to)
+{
     std::filesystem::copy(from, to,
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
 }
 
-void Local::remove(const char* filepath) {
-    if (std::remove(filepath) != 0) {
+void Local::remove(const std::filesystem::path& filepath) {
+    if (std::remove(filepath.c_str()) != 0) {
         std::ostringstream msg;
         msg << "File '" << filepath << "' cannot be remove";
         throw std::runtime_error(msg.str());
     }
+}
+
+std::string Local::getName() const {
+    return "local";
 }

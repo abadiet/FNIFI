@@ -4,7 +4,7 @@
 using namespace fnifi;
 using namespace fnifi::connection;
 
-Relative::Relative(IConnection* conn, const char* path)
+Relative::Relative(IConnection* conn, const std::filesystem::path& path)
 : _conn(conn), _path(path)
 {}
 
@@ -16,46 +16,45 @@ void Relative::disconnect(bool agressive) {
     _conn->disconnect(agressive);
 }
 
-DirectoryIterator Relative::iterate(const char* path, bool recursive,
-                                    bool files, bool folders)
+DirectoryIterator Relative::iterate(const std::filesystem::path& path,
+                                    bool recursive, bool files, bool folders)
 {
-    const auto abspath = _path / path;
-    const auto dirit = _conn->iterate(abspath.c_str(), recursive, files,
+    const auto dirit = _conn->iterate(_path / path, recursive, files,
                                       folders);
-    return DirectoryIterator(dirit, _path.c_str());
+    return DirectoryIterator(dirit, _path);
 }
 
-bool Relative::exists(const char* filepath) {
-    const auto abspath = _path / filepath;
-    return _conn->exists(abspath.c_str());
+bool Relative::exists(const std::filesystem::path& filepath) {
+    return _conn->exists(_path / filepath);
 }
 
-struct stat Relative::getStats(const char* filepath) {
-    const auto abspath = _path / filepath;
-    return _conn->getStats(abspath.c_str());
+struct stat Relative::getStats(const std::filesystem::path& filepath) {
+    return _conn->getStats(_path / filepath);
 }
 
-fileBuf_t Relative::read(const char* filepath) {
-    const auto abspath = _path / filepath;
-    return _conn->read(abspath.c_str());
+fileBuf_t Relative::read(const std::filesystem::path& filepath) {
+    return _conn->read(_path / filepath);
 }
 
-void Relative::write(const char* filepath, const fileBuf_t& buffer) {
-    const auto abspath = _path / filepath;
-    return _conn->write(abspath.c_str(), buffer);
+void Relative::write(const std::filesystem::path& filepath,
+                     const fileBuf_t& buffer) {
+    return _conn->write(_path / filepath, buffer);
 }
 
-void Relative::download(const char* from, const char* to) {
-    const auto abspath = _path / from;
-    _conn->download(abspath.c_str(), to);
+void Relative::download(const std::filesystem::path& from,
+                        const std::filesystem::path& to) {
+    _conn->download(_path / from, to);
 }
 
-void Relative::upload(const char* from, const char* to) {
-    const auto abspath = _path / to;
-    _conn->upload(from, abspath.c_str());
+void Relative::upload(const std::filesystem::path& from,
+                      const std::filesystem::path& to) {
+    _conn->upload(from, _path / to);
 }
 
-void Relative::remove(const char* filepath) {
-    const auto abspath = _path / filepath;
-    _conn->remove(abspath.c_str());
+void Relative::remove(const std::filesystem::path& filepath) {
+    _conn->remove(_path / filepath);
+}
+
+std::string Relative::getName() const {
+    return "relative(" + _path.string() + ")-" + _conn->getName();
 }

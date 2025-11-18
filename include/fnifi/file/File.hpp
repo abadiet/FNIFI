@@ -25,16 +25,17 @@ public:
     std::string getPath() const;
     struct stat getStats() const;
     std::ostream& getMetadata(std::ostream& os, MetadataType type,
-                              const char* key) const;
+                              const std::string& key) const;
     fileBuf_t preview() const;
     fileBuf_t read() const;
     void setSortingScore(expr_t score);
     void setIsFilteredOut(bool isFilteredOut);
     bool isFilteredOut() const;
+    std::string getCollectionName() const;
 
 private:
     const fileId_t _id;
-    expr_t _sort;
+    expr_t _sortScore;
     bool _filteredOut;
     IFileHelper* _helper;
 };

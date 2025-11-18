@@ -19,7 +19,7 @@ public:
     };
 
     static Variable& Build(Type type, const std::string& key,
-                           const char* storingPath);
+                           const std::filesystem::path& storingPath);
     static Type GetType(const std::string& name);
 
     ~Variable();
@@ -31,7 +31,7 @@ public:
      * TODO
      */
     Variable(Type type, const std::string& key,
-                       const char* storingPath);
+                       const std::filesystem::path& storingPath);
 
 private:
     expr_t getValue(const file::File* file);

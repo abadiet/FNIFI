@@ -35,7 +35,8 @@ public:
                       bool files, bool folders);
     DirectoryIterator(void* data, const std::function<
                       const libsmb_file_info*(void*,std::string&)>& nextEntry);
-    DirectoryIterator(const DirectoryIterator& dirit, const char* path);
+    DirectoryIterator(const DirectoryIterator& dirit,
+                      const std::filesystem::path& path);
     std::unordered_set<Entry, EntryHash>::const_iterator begin() const;
     std::unordered_set<Entry, EntryHash>::const_iterator end() const;
     size_t size() const;

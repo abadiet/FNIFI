@@ -11,19 +11,23 @@ namespace connection {
 
 class Relative : virtual public IConnection {
 public:
-    Relative(IConnection* conn, const char* path);
+    Relative(IConnection* conn, const std::filesystem::path& path);
     void connect() override;
     void disconnect(bool agressive = false) override;
-    DirectoryIterator iterate(const char* path, bool recursive = true,
-                              bool files = true, bool folders = false
-                              ) override;
-    bool exists(const char* filepath) override;
-    struct stat getStats(const char* filepath) override;
-    fileBuf_t read(const char* filepath) override;
-    void write(const char* filepath, const fileBuf_t& buffer) override;
-    void download(const char* from, const char* to) override;
-    void upload(const char* from, const char* to) override;
-    void remove(const char* filepath) override;
+    DirectoryIterator iterate(const std::filesystem::path& path,
+                              bool recursive = true, bool files = true,
+                              bool folders = false) override;
+    bool exists(const std::filesystem::path& filepath) override;
+    struct stat getStats(const std::filesystem::path& filepath) override;
+    fileBuf_t read(const std::filesystem::path& filepath) override;
+    void write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
+        override;
+    void download(const std::filesystem::path& from,
+                  const std::filesystem::path& to) override;
+    void upload(const std::filesystem::path& from,
+                const std::filesystem::path& to) override;
+    void remove(const std::filesystem::path& filepath) override;
+    std::string getName() const override;
 
 private:
     IConnection* _conn;

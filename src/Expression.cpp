@@ -6,12 +6,13 @@ using namespace fnifi::expression;
 
 Expression::Expression() {}
 
-void Expression::build(const std::string& expr, const std::string& storingPath)
+void Expression::build(const std::string& expr,
+                       const std::filesystem::path& storingPath)
 {
     if (_stored.is_open()) {
         _stored.close();
     }
-    const auto filename = storingPath + GetHash(expr) + ".fnifi";
+    const auto filename = storingPath / (Hash(expr) + ".fnifi");
     if (std::filesystem::exists(filename)) {
         _stored.open(filename, std::ios::in | std::ios::out |
                      std::ios::binary | std::ios::ate);
@@ -31,12 +32,12 @@ void Expression::build(const std::string& expr, const std::string& storingPath)
             if (pos == std::string::npos) {
                 /* this is a listed variable */
                 const auto type = Variable::GetType(name);
-                var = &Variable::Build(type, name, _storingPath.c_str());
+                var = &Variable::Build(type, name, _storingPath);
             } else {
                 /* this is an unkown variable */
                 const auto type = Variable::GetType(name.substr(pos));
                 var = &Variable::Build(type, name.substr(pos + 1),
-                                       _storingPath.c_str());
+                                       _storingPath);
             }
             _vars.push_back({var, 0});
             return _vars.back().ref;
@@ -104,12 +105,4 @@ expr_t Expression::getValue(const file::File* file) {
 
     /* run sxeval */
     return _sxeval.execute();
-}
-
-std::string Expression::GetHash(const std::string& s) {
-    auto res = s;
-    for (char c : "/\\:*?\"<>|") {
-        std::replace(res.begin(), res.end(), c, '_');
-    }
-    return res;
 }

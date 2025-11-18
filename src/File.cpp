@@ -6,7 +6,7 @@ using namespace fnifi;
 using namespace fnifi::file;
 
 bool File::pCompare::operator()(const File* a, const File* b) const {
-    return a->_sort < b->_sort;
+    return a->_sortScore < b->_sortScore;
 }
 
 File::File(fileId_t id, IFileHelper* helper)
@@ -32,7 +32,7 @@ struct stat File::getStats() const {
 }
 
 std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
-                                const char* key) const {
+                                const std::string& key) const {
     const auto data = _helper->read(_id);
 
     switch (type) {
@@ -100,7 +100,7 @@ fileBuf_t File::read() const {
 }
 
 void File::setSortingScore(expr_t score) {
-    _sort = score;
+    _sortScore = score;
 }
 
 void File::setIsFilteredOut(bool isFilteredOut) {
@@ -109,4 +109,8 @@ void File::setIsFilteredOut(bool isFilteredOut) {
 
 bool File::isFilteredOut() const {
     return _filteredOut;
+}
+
+std::string File::getCollectionName() const {
+    return _helper->getName();
 }

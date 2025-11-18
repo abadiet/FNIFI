@@ -18,7 +18,8 @@ namespace file {
 class Collection : virtual public IFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
-               connection::IConnection* storingConn, const char* tmpPath);
+               connection::IConnection* storingConn,
+               const std::filesystem::path& tmpPath);
     ~Collection() override;
     void index(
         std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
@@ -29,6 +30,7 @@ public:
     struct stat getStats(fileId_t id) override;
     fileBuf_t preview(fileId_t id) override;
     fileBuf_t read(fileId_t id) override;
+    std::string getName() const override;
     std::unordered_map<fileId_t, File>::const_iterator begin() const;
     std::unordered_map<fileId_t, File>::const_iterator end() const;
     std::unordered_map<fileId_t, File>::iterator begin();
@@ -53,7 +55,7 @@ private:
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;
     connection::IConnection* _storingConn;
-    std::filesystem::path _tmpPath;
+    const std::filesystem::path _tmpPath;
     std::fstream _mapping;
     std::fstream _filepaths;
     std::unordered_set<fileId_t> _availableIds;

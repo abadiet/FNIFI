@@ -14,16 +14,20 @@ public:
     virtual ~IConnection();
     virtual void connect() = 0;
     virtual void disconnect(bool agressive = false) = 0;
-    virtual DirectoryIterator iterate(const char* path, bool recursive = true,
-                                      bool files = true, bool folders = false
-                                      ) = 0;
-    virtual bool exists(const char* filepath) = 0;
-    virtual struct stat getStats(const char* filepath) = 0;
-    virtual fileBuf_t read(const char* filepath) = 0;
-    virtual void write(const char* filepath, const fileBuf_t& buffer) = 0;
-    virtual void download(const char* from, const char* to) = 0;
-    virtual void upload(const char* from, const char* to) = 0;
-    virtual void remove(const char* filepath) = 0;
+    virtual DirectoryIterator iterate(const std::filesystem::path& path,
+                                      bool recursive = true, bool files = true,
+                                      bool folders = false) = 0;
+    virtual bool exists(const std::filesystem::path& filepath) = 0;
+    virtual struct stat getStats(const std::filesystem::path& filepath) = 0;
+    virtual fileBuf_t read(const std::filesystem::path& filepath) = 0;
+    virtual void write(const std::filesystem::path& filepath,
+                       const fileBuf_t& buffer) = 0;
+    virtual void download(const std::filesystem::path& from,
+                          const std::filesystem::path& to) = 0;
+    virtual void upload(const std::filesystem::path& from,
+                        const std::filesystem::path& to) = 0;
+    virtual void remove(const std::filesystem::path& filepath) = 0;
+    virtual std::string getName() const = 0;
 };
 
 }  /* namespace connection */

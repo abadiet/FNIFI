@@ -8,7 +8,7 @@ using namespace fnifi::expression;
 std::unordered_map<std::string, Variable> Variable::_built;
 
 Variable& Variable::Build(Variable::Type type, const std::string& key,
-                          const char* storingPath)
+                          const std::filesystem::path& storingPath)
 {
     const auto it = _built.find(key);
     if (it != _built.end()) {
@@ -69,10 +69,10 @@ expr_t Variable::get(const file::File* file) {
 }
 
 Variable::Variable(Variable::Type type, const std::string& key,
-                   const char* storingPath)
+                   const std::filesystem::path& storingPath)
 : _maxId(0), _type(type), _key(key)
 {
-    const auto filename = storingPath + _key + ".fnifi";
+    const auto filename = storingPath / (Hash(_key) + ".fnifi");
     if (std::filesystem::exists(filename)) {
         _stored = std::fstream(filename, std::ios::in | std::ios::out |
                                std::ios::binary | std::ios::ate);

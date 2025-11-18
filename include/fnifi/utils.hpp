@@ -50,6 +50,8 @@ std::istream& Deserialize(std::istream& is, std::vector<T>& var);
 
 bool operator>(const timespec& lhs, const timespec& rhs);
 
+std::string Hash(const std::string& s);
+
 }  /* namespace fnifi */
 
 /* IMPLEMENTATIONS */
@@ -92,6 +94,14 @@ inline bool fnifi::operator>(const timespec& lhs, const timespec& rhs) {
         return lhs.tv_nsec > rhs.tv_nsec;
     }
     return lhs.tv_sec > rhs.tv_sec;
+}
+
+inline std::string fnifi::Hash(const std::string& s) {
+    auto res = s;
+    for (char c : "/\\:*?\"<>|") {
+        std::replace(res.begin(), res.end(), c, '_');
+    }
+    return res;
 }
 
 #endif  /* FNIFI_UTILS_HPP */

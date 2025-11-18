@@ -64,8 +64,9 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
     return !(*this == other);
 }
 
-FNIFI::FNIFI(std::vector<file::Collection*>& colls,
-             connection::IConnection* storingConn, const char* storingPath)
+FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
+             connection::IConnection* storingConn,
+             const std::filesystem::path& storingPath)
 : _colls(colls), _storingConn(storingConn),
     _storingPath(storingPath)
 {
@@ -114,7 +115,7 @@ void FNIFI::index() {
     }
 }
 
-void FNIFI::sort(const char* expr) {
+void FNIFI::sort(const std::string& expr) {
     _files.clear();
     _sortExpr.build(expr, _storingPath);
     for (const auto& coll : _colls) {
@@ -126,7 +127,7 @@ void FNIFI::sort(const char* expr) {
     }
 }
 
-void FNIFI::filter(const char* expr) {
+void FNIFI::filter(const std::string& expr) {
     _filtExpr.build(expr, _storingPath);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {

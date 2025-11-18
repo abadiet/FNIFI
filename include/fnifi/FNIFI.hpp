@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <iterator>
 #include <cstddef>
+#include <filesystem>
 
 
 namespace fnifi {
@@ -42,23 +43,24 @@ public:
         fileset_t& _files;
     };
 
-    FNIFI(std::vector<file::Collection*>& colls,
-          connection::IConnection* storignConn, const char* storingPath);
+    FNIFI(const std::vector<file::Collection*>& colls,
+          connection::IConnection* storignConn,
+          const std::filesystem::path& storingPath);
     void index();
     void defragment();
-    void sort(const char* expr);
-    void filter(const char* expr);
+    void sort(const std::string& expr);
+    void filter(const std::string& expr);
     Iterator begin();
     Iterator end();
 
 private:
-    std::vector<file::Collection*> _colls;
+    const std::vector<file::Collection*> _colls;
     expression::Expression _sortExpr;
     expression::Expression _filtExpr;
     fileset_t _files;
     std::unordered_set<const file::File*> _toRemove;
     connection::IConnection* _storingConn;
-    std::string _storingPath;
+    const std::filesystem::path _storingPath;
 };
 
 }  /* namespace fnifi */

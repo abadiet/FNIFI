@@ -15,6 +15,7 @@ public:
     virtual struct stat getStats(fileId_t id) = 0;
     virtual fileBuf_t preview(fileId_t id) = 0;
     virtual fileBuf_t read(fileId_t id) = 0;
+    virtual std::string getName() const = 0;
 };
 
 }  /* namespace file */

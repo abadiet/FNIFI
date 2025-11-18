@@ -17,18 +17,18 @@
 using namespace fnifi;
 using namespace fnifi::connection;
 
-SMB::SMB(const char* server, const char* share, const char* workgroup,
-         const char* username, const char* password)
+SMB::SMB(const std::string& server, const std::string& share,
+         const std::string& workgroup, const std::string& username,
+         const std::string& password)
 : _userdata({server, share, workgroup, username, password}), _ctx(nullptr)
 {
-    if (!server || !share || !workgroup || !username || !password) {
-        throw std::runtime_error("Trying to instantiate a SMB object with "
-                                 "either server or share or workgroup or "
-                                 "username or password null");
+    if (server == "") {
+        throw std::runtime_error("Trying to instantiate a SMB object without "
+                                 "providing a server");
     }
     std::ostringstream oss;
     oss << "smb://" << server;
-    if (share) {
+    if (share != "") {
         oss << "/" << share;
     }
     oss << "/";
@@ -64,10 +64,10 @@ void SMB::disconnect(bool aggresive) {
     }
 }
 
-DirectoryIterator SMB::iterate(const char* path, bool recursive, bool files,
-                               bool folders)
+DirectoryIterator SMB::iterate(const std::filesystem::path& path,
+                               bool recursive, bool files, bool folders)
 {
-    const auto fullpath = _path + path;
+    const auto fullpath = _path + path.string();
     auto rootdir = smbc_getFunctionOpendir(_ctx)(_ctx, fullpath.c_str());
     if (!rootdir) {
         ELOG("SMB " << this << " failed to open the directory " << fullpath
@@ -83,16 +83,16 @@ DirectoryIterator SMB::iterate(const char* path, bool recursive, bool files,
     return iter;
 }
 
-bool SMB::exists(const char* filepath) {
+bool SMB::exists(const std::filesystem::path& filepath) {
     /* TODO: a bit dirty */
     struct stat filestat;
-    const auto path = _path + filepath;
+    const auto path = _path + filepath.string();
     return smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &filestat) == 0;
 }
 
-struct stat SMB::getStats(const char* filepath) {
+struct stat SMB::getStats(const std::filesystem::path& filepath) {
     struct stat filestat;
-    const auto path = _path + filepath;
+    const auto path = _path + filepath.string();
     if (smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &filestat) != 0) {
         ELOG("SMB " << this << " failed to get the stat of " << path
              << ": " << strerror(errno))
@@ -100,9 +100,9 @@ struct stat SMB::getStats(const char* filepath) {
     return filestat;
 }
 
-fileBuf_t SMB::read(const char* filepath) {
+fileBuf_t SMB::read(const std::filesystem::path& filepath) {
     fileBuf_t res;
-    const auto path = _path + filepath;
+    const auto path = _path + filepath.string();
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_RDONLY, 0);
     if (!file) {
         ELOG("SMB " << this << " failed to open " << path << ": "
@@ -129,8 +129,8 @@ fileBuf_t SMB::read(const char* filepath) {
     return res;
 }
 
-void SMB::write(const char* filepath, const fileBuf_t& buffer) {
-    const auto path = _path + filepath;
+void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer) {
+    const auto path = _path + filepath.string();
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_WRONLY |
                                            O_TRUNC | O_CREAT, 0);
     if (!file) {
@@ -154,7 +154,7 @@ void SMB::write(const char* filepath, const fileBuf_t& buffer) {
     }
 }
 
-void SMB::download(const char* from, const char* to) {
+void SMB::download(const std::filesystem::path& from, const std::filesystem::path& to) {
     const auto content = read(from);
     std::ofstream file(to, std::ios::trunc);
     if (!file.is_open()) {
@@ -166,7 +166,7 @@ void SMB::download(const char* from, const char* to) {
     file.close();
 }
 
-void SMB::upload(const char* from, const char* to) {
+void SMB::upload(const std::filesystem::path& from, const std::filesystem::path& to) {
     std::ifstream file(from, std::ios::ate);
     const auto len = file.tellg();
     fileBuf_t buf(static_cast<size_t>(len), '\0');
@@ -176,11 +176,15 @@ void SMB::upload(const char* from, const char* to) {
     file.close();
 }
 
-void SMB::remove(const char* filepath) {
-    const auto path = _path + filepath;
+void SMB::remove(const std::filesystem::path& filepath) {
+    const auto path = _path + filepath.string();
     if (smbc_getFunctionUnlink(_ctx)(_ctx, path.c_str()) != 0) {
         ELOG("SMB " << this << " failed to remove " << path)
     }
+}
+
+std::string SMB::getName() const {
+    return _path;
 }
 
 void SMB::get_auth_data_with_context_fn(SMBCCTX* c, const char* srv,
@@ -244,7 +248,7 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
     }
 
     /* fix entry's name to be absolute */
-    absname = d->dirs.back().path + "/" + entry->name;
+    absname = d->dirs.back().path / entry->name;
 
     if (d->recursive && DOS_ISDIR(entry->attrs)) {
         /* new directory */

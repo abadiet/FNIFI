@@ -16,7 +16,7 @@ using namespace fnifi::file;
 
 Collection::Collection(connection::IConnection* indexingConn,
                        connection::IConnection* storingConn,
-                       const char* tmpPath)
+                       const std::filesystem::path& tmpPath)
 : _indexingConn(indexingConn), _storingConn(storingConn), _tmpPath(tmpPath)
 {
     /* download files */
@@ -85,7 +85,7 @@ void Collection::index(
         const auto path = it->second.getPath();
         /* TODO optimization: look for stat, if none, deduced the file does
          * not exists */
-        if (!_indexingConn->exists(path.c_str())) {
+        if (!_indexingConn->exists(path)) {
             /* the file has been remove */
             const auto id = it->second.getId();
 
@@ -103,7 +103,7 @@ void Collection::index(
 
             /* remove from _filepaths */
             _filepaths.seekp(std::streamoff(node.offset));
-            _filepaths.write(placeholderPath.c_str(),
+            _filepaths.write(placeholderPath.data(),
                              std::streamsize(placeholderPath.size()));
 
             _availableIds.insert(id);
@@ -225,7 +225,7 @@ void Collection::defragment() {
             msg << "Unable to rename file " << tmpPath << " to " << path;
             throw std::runtime_error(msg.str());
         }
-        _filepaths = std::fstream(path.c_str(), std::ios::in | std::ios::out |
+        _filepaths = std::fstream(path, std::ios::in | std::ios::out |
                                   std::ios::binary);
     }
     DLOG("Collection " << this << " found " << chunks.size()
@@ -284,17 +284,17 @@ std::string Collection::getFilePath(fileId_t id) {
 
 struct stat Collection::getStats(fileId_t id) {
     const auto filepath = getFilePath(id);
-    return _indexingConn->getStats(filepath.c_str());
+    return _indexingConn->getStats(filepath);
 }
 
 fileBuf_t Collection::read(fileId_t id) {
     const auto filepath = getFilePath(id);
-    return _indexingConn->read(filepath.c_str());
+    return _indexingConn->read(filepath);
 }
 
 fileBuf_t Collection::preview(fileId_t id) {
     const auto filepath = getPreviewFilePath(id);
-    return _indexingConn->read(filepath.c_str());
+    return _indexingConn->read(filepath);
 }
 
 std::unordered_map<fileId_t, File>::const_iterator Collection::begin() const {
@@ -317,6 +317,10 @@ size_t Collection::size() const {
     return _files.size();
 }
 
+std::string Collection::getName() const {
+    return _indexingConn->getName();
+}
+
 void Collection::pullStored() {
     /* TODO: MD5 check? */
     DLOG("Collection " << this << " is pulling stored files")
@@ -329,11 +333,11 @@ void Collection::pullStored() {
     {
         const auto path = _tmpPath / MAPPING_FILE;
         if (_storingConn->exists(MAPPING_FILE)) {
-            _storingConn->download(MAPPING_FILE, path.c_str());
-            _mapping = std::fstream(path.c_str(), std::ios::in |
+            _storingConn->download(MAPPING_FILE, path);
+            _mapping = std::fstream(path, std::ios::in |
                                     std::ios::out | std::ios::binary);
         } else {
-            _mapping = std::fstream(path.c_str(), std::ios::in |
+            _mapping = std::fstream(path, std::ios::in |
                                     std::ios::out | std::ios::binary |
                                     std::ios::trunc);
         }
@@ -346,11 +350,11 @@ void Collection::pullStored() {
     {
         const auto path = _tmpPath / FILEPATHS_FILE;
         if (_storingConn->exists(FILEPATHS_FILE)) {
-            _storingConn->download(FILEPATHS_FILE, path.c_str());
-            _filepaths = std::fstream(path.c_str(), std::ios::in |
+            _storingConn->download(FILEPATHS_FILE, path);
+            _filepaths = std::fstream(path, std::ios::in |
                                     std::ios::out | std::ios::binary);
         } else {
-            _filepaths = std::fstream(path.c_str(), std::ios::in |
+            _filepaths = std::fstream(path, std::ios::in |
                                     std::ios::out | std::ios::binary |
                                     std::ios::trunc);
         }
@@ -363,9 +367,9 @@ void Collection::pullStored() {
     {
         const auto path = _tmpPath / INFO_FILE;
         if (_storingConn->exists(INFO_FILE)) {
-            _storingConn->download(INFO_FILE, path.c_str());
+            _storingConn->download(INFO_FILE, path);
         } else {
-            std::fstream file(path.c_str(), std::ios::in | std::ios::out |
+            std::fstream file(path, std::ios::in | std::ios::out |
                               std::ios::binary | std::ios::trunc);
             file.close();
         }
@@ -376,15 +380,15 @@ void Collection::pushStored() {
     DLOG("Collection " << this << " is pushing stored files")
     {
         const auto path = _tmpPath / MAPPING_FILE;
-        _storingConn->upload(path.c_str(), MAPPING_FILE);
+        _storingConn->upload(path, MAPPING_FILE);
     }
     {
         const auto path = _tmpPath / FILEPATHS_FILE;
-        _storingConn->upload(path.c_str(), FILEPATHS_FILE);
+        _storingConn->upload(path, FILEPATHS_FILE);
     }
     {
         const auto path = _tmpPath / INFO_FILE;
-        _storingConn->upload(path.c_str(), INFO_FILE);
+        _storingConn->upload(path, INFO_FILE);
     }
 }
 
