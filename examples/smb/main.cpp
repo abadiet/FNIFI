@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     /* Loop over the files */
     for (const auto file : fi) {
         std::cout << file->getPath() << ": ";
-        file->getMetadata(std::cout, fnifi::file::MetadataType::EXIF,
+        file->getMetadata(std::cout, fnifi::expression::Type::EXIF,
                           "Exif.Image.Model");
         std::cout << std::endl;
     }

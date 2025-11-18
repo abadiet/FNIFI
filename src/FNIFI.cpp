@@ -127,13 +127,13 @@ void FNIFI::index() {
             bool hasChanged = false;
             if (_sortExpr) {
                 const auto prevScore = file->getSortingScore();
-                const auto score = _sortExpr->get(file, true);
+                const auto score = _sortExpr->get(file);
                 file->setSortingScore(score);
                 hasChanged = hasChanged || (score != prevScore);
             }
             if (_filtExpr) {
                 const auto prevCheck = file->isFilteredOut();
-                const auto check = _filtExpr->get(file, true);
+                const auto check = _filtExpr->get(file);
                 file->setIsFilteredOut(check);
                 hasChanged = hasChanged || (check != prevCheck);
             }

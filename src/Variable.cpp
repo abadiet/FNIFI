@@ -6,7 +6,7 @@
 using namespace fnifi;
 using namespace fnifi::expression;
 
-Variable::Type Variable::GetType(const std::string& name) {
+Type Variable::GetType(const std::string& name) {
     if (name == "ctime") return Type::CTIME;
     return Type::UNKOWN;
 }
@@ -33,7 +33,8 @@ Variable::Variable(const std::string& key,
     }
 }
 
-expr_t Variable::getValue(const file::File* file, bool noCache) {
+expr_t Variable::getValue(const file::File* file) {
+    /* TODO consider using File::getMetadata */
     switch (_type) {
         case CTIME:
             {
@@ -42,10 +43,10 @@ expr_t Variable::getValue(const file::File* file, bool noCache) {
                                            );
             }
         case UNKOWN:
-            {
-                TODO
-            }
+            throw std::runtime_error("Bad Metadata's type");
+        case EXIF:
+        case XMP:
+        case IPTC:
+            TODO
     }
-
-    UNUSED(noCache);
 }

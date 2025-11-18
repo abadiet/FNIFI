@@ -2,7 +2,7 @@
 #define FNIFI_FILE_FILE_HPP
 
 #include "fnifi/file/IFileHelper.hpp"
-#include "fnifi/file/MetadataType.hpp"
+#include "fnifi/expression/Type.hpp"
 #include "fnifi/utils.hpp"
 #include <sys/stat.h>
 #include <exiv2/exiv2.hpp>
@@ -24,7 +24,7 @@ public:
     fileId_t getId() const;
     std::string getPath() const;
     struct stat getStats() const;
-    std::ostream& getMetadata(std::ostream& os, MetadataType type,
+    std::ostream& getMetadata(std::ostream& os, expression::Type type,
                               const std::string& key) const;
     fileBuf_t preview() const;
     fileBuf_t read() const;

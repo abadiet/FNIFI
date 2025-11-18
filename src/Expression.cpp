@@ -25,10 +25,10 @@ Expression::Expression(const std::string& expr,
     _sxeval.build(expr, _handler);
 }
 
-expr_t Expression::getValue(const file::File* file, bool noCache) {
+expr_t Expression::getValue(const file::File* file) {
     /* fill the variables */
     for (auto& var : _vars) {
-        var.ref = var.var->get(file, noCache);
+        var.ref = var.var->get(file);
     }
 
     /* run sxeval */

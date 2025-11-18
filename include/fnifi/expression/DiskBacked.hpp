@@ -21,7 +21,7 @@ public:
                const std::vector<file::Collection*>& colls,
                const std::filesystem::path& parentDirName);
     virtual ~DiskBacked();
-    expr_t get(const file::File* file, bool noCache = false);
+    expr_t get(const file::File* file);
     void update();
 
 private:
@@ -31,7 +31,7 @@ private:
         std::filesystem::path path;
     };
 
-    virtual expr_t getValue(const file::File* file, bool noCache = false) = 0;
+    virtual expr_t getValue(const file::File* file) = 0;
 
     std::unordered_map<std::string, StoredColl> _storedColls;
 };

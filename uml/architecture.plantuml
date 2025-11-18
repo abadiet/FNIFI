@@ -72,18 +72,15 @@ package fnifi {
 
         enum Variable::Type {
             +CTIME
+            +XMP
+            +EXIF
+            +IPTC
             +UNKNOWN
         }
 
     }
 
     package file {
-        enum MetadataType {
-            +XMP
-            +EXIF
-            +IPTC
-        }
-
         interface IFileHelper {
             +getFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
@@ -102,7 +99,7 @@ package fnifi {
             +getId() : fileId_t
             +getPath() : std::string
             +getStats() : struct stat
-            +getMetadata(os : std::ostream&, type : MetadataType,
+            +getMetadata(os : std::ostream&, type : expression::Variable::Type,
             key : const std::string&) : std::ostream&
             +preview() : fileBuf_t
             +read() : fileBuf_t

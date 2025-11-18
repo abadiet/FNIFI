@@ -80,7 +80,7 @@ DiskBacked::~DiskBacked() {
     }
 }
 
-expr_t DiskBacked::get(const file::File* file, bool noCache) {
+expr_t DiskBacked::get(const file::File* file) {
     /* get the associated stored file */
     const auto stored = _storedColls.find(file->getCollectionName());
     if (stored == _storedColls.end()) {
@@ -94,16 +94,14 @@ expr_t DiskBacked::get(const file::File* file, bool noCache) {
     const auto pos = id * sizeof(expr_t);
 
     if (id <= stored->second.maxId) {
-        if (!noCache) {
-            /* the value may be saved */
-            expr_t res;
-            stored->second.file->seekg(std::streamoff(pos));
-            Deserialize(*stored->second.file, res);
+        /* the value may be saved */
+        expr_t res;
+        stored->second.file->seekg(std::streamoff(pos));
+        Deserialize(*stored->second.file, res);
 
-            if (res != EMPTY_EXPR_T) {
-                /* the value was saved */
-                return res;
-            }
+        if (res != EMPTY_EXPR_T) {
+            /* the value was saved */
+            return res;
         }
     } else {
         /* filling the file up to the position of the value */
@@ -115,7 +113,7 @@ expr_t DiskBacked::get(const file::File* file, bool noCache) {
         stored->second.maxId = id;
     }
 
-    const auto res = getValue(file, noCache);
+    const auto res = getValue(file);
     stored->second.file->seekp(std::streamoff(pos));
     Serialize(*stored->second.file, res);
 

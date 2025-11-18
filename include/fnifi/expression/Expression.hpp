@@ -28,7 +28,7 @@ private:
         expr_t ref;
     };
 
-    expr_t getValue(const file::File* file, bool noCache = false) override;
+    expr_t getValue(const file::File* file) override;
 
     std::function<expr_t&(const std::string&)> _handler;
     sxeval::SXEval<expr_t> _sxeval;

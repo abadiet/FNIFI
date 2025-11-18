@@ -31,14 +31,20 @@ struct stat File::getStats() const {
     return _helper->getStats(_id);
 }
 
-std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
+std::ostream& File::getMetadata(std::ostream& os, expression::Type type,
                                 const std::string& key) const {
     const auto data = _helper->read(_id);
 
     switch (type) {
-        case XMP:
-        case EXIF:
-        case IPTC:
+        case expression::CTIME:
+            {
+                const auto time = _helper->getStats(_id).st_ctimespec;
+                os << (S_TO_NS(time.tv_sec) + time.tv_nsec);
+            }
+            break;
+        case expression::XMP:
+        case expression::EXIF:
+        case expression::IPTC:
             {
                 Exiv2::Image::UniquePtr image;
                 try {
@@ -56,7 +62,7 @@ std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
                 image->readMetadata();
 
                 switch (type) {
-                    case XMP:
+                    case expression::XMP:
                         {
                             const auto& meta = image->xmpData();
                             const auto pos = meta.findKey(Exiv2::XmpKey(key));
@@ -65,7 +71,7 @@ std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
                             }
                         }
                         break;
-                    case EXIF:
+                    case expression::EXIF:
                         {
                             const auto& meta = image->exifData();
                             const auto pos = meta.findKey(Exiv2::ExifKey(key));
@@ -74,7 +80,7 @@ std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
                             }
                         }
                         break;
-                    case IPTC:
+                    case expression::IPTC:
                         {
                             const auto& meta = image->iptcData();
                             const auto pos = meta.findKey(Exiv2::IptcKey(key));
@@ -83,9 +89,15 @@ std::ostream& File::getMetadata(std::ostream& os, MetadataType type,
                             }
                         }
                         break;
+                    case expression::CTIME:
+                    case expression::UNKOWN:
+                        /* impossible */
+                        break;
                 }
             }
             break;
+        case expression::UNKOWN:
+            throw std::runtime_error("Bad Metadata's type");
     }
 
     return os;
