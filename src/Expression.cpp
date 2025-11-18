@@ -1,66 +1,106 @@
 #include "fnifi/expression/Expression.hpp"
 
+#define EXPRESSIONS_DIRNAME "expressions"
+#define RESULTS_FILENAME "results.fnifi"
+
 
 using namespace fnifi;
 using namespace fnifi::expression;
 
-Expression::Expression() {}
-
-void Expression::build(const std::string& expr,
-                       const std::filesystem::path& storingPath)
+Expression::Expression(const std::filesystem::path& storingPath,
+                       const std::vector<file::Collection*>& colls)
+: _storingPath(storingPath)
 {
-    if (_stored.is_open()) {
-        _stored.close();
+    for (const auto& coll : colls) {
+        /* create the folders if needed */
+        const auto name = coll->getName();
+        const auto dir = _storingPath / Hash(name);
+        std::filesystem::create_directories(dir);
+
+        /* fill _stored */
+        _storedColls.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(name),
+            std::forward_as_tuple(std::fstream(), 0, dir)
+        );
     }
-    const auto filename = storingPath / (Hash(expr) + ".fnifi");
-    if (std::filesystem::exists(filename)) {
-        _stored.open(filename, std::ios::in | std::ios::out |
-                     std::ios::binary | std::ios::ate);
-        _maxId = static_cast<fileId_t>(static_cast<size_t>(_stored.tellg())
-                                       / sizeof(expr_t));
-    } else {
-        _stored = std::fstream(filename, std::ios::in | std::ios::out |
-                               std::ios::binary | std::ios::trunc);
-        _maxId = 0;
+}
+
+Expression::~Expression() {
+    for (auto& stored : _storedColls) {
+        if (stored.second.file.is_open()) {
+            stored.second.file.close();
+        }
     }
-    _storingPath = storingPath;
+}
+
+void Expression::build(const std::string& expr) {
+    /* update _stored */
+    for (auto& s : _storedColls) {
+        /* close previous results.fnifi file if needed */
+        if (s.second.file.is_open()) {
+            s.second.file.close();
+            s.second.maxId = 0;
+        }
+
+        /* create directory if needed */
+        const auto dir = s.second.path / EXPRESSIONS_DIRNAME / Hash(expr);
+        std::filesystem::create_directories(dir);
+
+        /* create or open the results.fnifi file */
+        const auto filename = dir / RESULTS_FILENAME;
+        if (std::filesystem::exists(filename)) {
+            s.second.file =  std::fstream(filename, std::ios::in |
+                                          std::ios::out | std::ios::binary |
+                                          std::ios::ate);
+            s.second.maxId = static_cast<fileId_t>(static_cast<size_t>(
+                s.second.file.tellg()) / sizeof(expr_t));
+        } else {
+            s.second.file =  std::fstream(filename, std::ios::in |
+                                          std::ios::out | std::ios::binary |
+                                          std::ios::ate | std::ios::trunc);
+            s.second.maxId = 0;
+        }
+    }
+
+    /* build sxeval */
     _vars.clear();
     _handler =
         [&](const std::string& name) -> expr_t& {
-            Variable* var;
-            const auto pos = name.find('.');
-            if (pos == std::string::npos) {
-                /* this is a listed variable */
-                const auto type = Variable::GetType(name);
-                var = &Variable::Build(type, name, _storingPath);
-            } else {
-                /* this is an unkown variable */
-                const auto type = Variable::GetType(name.substr(pos));
-                var = &Variable::Build(type, name.substr(pos + 1),
-                                       _storingPath);
-            }
-            _vars.push_back({var, 0});
+            _vars.push_back({&Variable::Build(name), 0});
             return _vars.back().ref;
         };
     _sxeval.build(expr, _handler);
 }
 
 expr_t Expression::run(const file::File* file, bool noCache) {
-    if (!_stored.is_open()) {
+    /* dirty way to check if Expression::build has been called */
+    if (_storedColls.size() == 0 ||
+        !_storedColls.begin()->second.file.is_open())
+    {
         WLOG("Expression " << this
              << " has been called before being built. Aborting the call")
+        return 0;
+    }
+
+    /* get the associated stored file */
+    const auto stored = _storedColls.find(file->getCollectionName());
+    if (stored == _storedColls.end()) {
+        ELOG("Expression " << this << " has been called on a file that belongs"
+             " to an unknown Collection (" << file->getCollectionName()
+             << ") Aborting the call.")
         return 0;
     }
 
     const auto id = file->getId();
     const auto pos = id * sizeof(expr_t);
 
-    if (id <= _maxId) {
+    if (id <= stored->second.maxId) {
         if (!noCache) {
             /* the value may be saved */
             expr_t res;
-            _stored.seekg(std::streamoff(pos));
-            Deserialize(_stored, res);
+            stored->second.file.seekg(std::streamoff(pos));
+            Deserialize(stored->second.file, res);
 
             if (res != EMPTY_EXPR_T) {
                 /* the value was saved */
@@ -69,38 +109,47 @@ expr_t Expression::run(const file::File* file, bool noCache) {
         }
     } else {
         /* filling the file up to the position of the value */
-        _stored.seekp(0, std::ios::end);
-        for (auto i = _maxId; i < id; ++i) {
+        stored->second.file.seekp(0, std::ios::end);
+        for (auto i = stored->second.maxId; i < id; ++i) {
             /* TODO avoid multiples std::ofstream::write calls */
-            Serialize(_stored, EMPTY_EXPR_T);
+            Serialize(stored->second.file, EMPTY_EXPR_T);
         }
-        _maxId = id;
+        stored->second.maxId = id;
     }
 
-    const auto res = getValue(file);
-    _stored.seekp(std::streamoff(pos));
-    Serialize(_stored, res);
+    const auto res = getValue(file, noCache);
+    stored->second.file.seekp(std::streamoff(pos));
+    Serialize(stored->second.file, res);
 
     return res;
 }
 
-void Expression::remove(fileId_t id) {
-    if (!_stored.is_open()) {
+void Expression::remove(fileId_t id, const std::string& collectionName) {
+    if (_storedColls.size()) {
         WLOG("Expression " << this
              << " has been called before being built. Aborting the call")
         return;
     }
 
-    if (id <= _maxId) {
-        _stored.seekp(id * sizeof(expr_t));
-        Serialize(_stored, EMPTY_EXPR_T);
+    /* get the associated stored file */
+    const auto stored = _storedColls.find(collectionName);
+    if (stored == _storedColls.end()) {
+        ELOG("Expression " << this << " has been called on a file that belongs"
+             " to an unknown Collection (" << collectionName
+             << ") Aborting the call.")
+        return;
+    }
+
+    if (id <= stored->second.maxId) {
+        stored->second.file.seekp(id * sizeof(expr_t));
+        Serialize(stored->second.file, EMPTY_EXPR_T);
     }
 }
 
-expr_t Expression::getValue(const file::File* file) {
+expr_t Expression::getValue(const file::File* file, bool noCache) {
     /* fill the variables */
     for (auto& var : _vars) {
-        var.ref = var.var->get(file);
+        var.ref = var.var->get(file, noCache);
     }
 
     /* run sxeval */

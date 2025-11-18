@@ -40,33 +40,32 @@ package fnifi {
 
     package expression {
         class Expression {
-            -_stored : std::fstream
-            -_storingPath = std::filesystem::path
+            -_storingPath : const std::filesystem::path
             -_handler : std::function<expr_t&(const std::string&>
             -_sxeval : sxeval::SXEval<expr_t>
             -_vars : std::vector<struct RefVar>
+            -_storedColls : std::unordered_map<struct StoredColl>
             -_maxId : fileId_t
-            -getValue(file : const file::File*) : expr_t
-            +Expression()
+            -getValue(file : const file::File*, noCache : bool) : expr_t
+            +Expression(storingPath : const std::filesystem::path&,
+            colls : std::vector<file::Collection*>& colls)
             +build(expr : const std::string&,
             storingPath : const std::filesystem::path&)
             +run(file : const file::File*, noCache : bool := false)
-            +remove(id : fileId_t)
+            +remove(id : fileId_t, collectionName : const std::string&)
         }
 
         class Variable {
-            -_stored : std::fstream
-            -_maxId : fileId_t
             -_type : const Type
             -_key : const std::string
             -{static} _built : std::unordered_map<std::string, Variable>
+            -{static} _storedColls : std::unordered_map<std::string, StoredColl>
             -getValue(file : const file::File*) : expr_t
-            +{static} Build(type : Type, key : const std::string&,
-            storingPath : const std::filesystem::path&)
+            +{static} Build(key : const std::string&)
             +{static} GetType(name : const std::string&) : Type
             +~Variable()
-            +get(file : const file::File*) : expr_t
-            +Variable(type : Type, key : const std::string&, storingPath : const char*)
+            +get(file : const file::File*, noCache : bool := false) : expr_t
+            +Variable(key : const std::string&, type : Type, name : const std::string&)
         }
 
         enum Variable::Type {

@@ -1,5 +1,6 @@
 #include "fnifi/FNIFI.hpp"
 #include "fnifi/connection/IConnection.hpp"
+#include "fnifi/expression/Variable.hpp"
 
 
 using namespace fnifi;
@@ -67,9 +68,15 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
 FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
              connection::IConnection* storingConn,
              const std::filesystem::path& storingPath)
-: _colls(colls), _storingConn(storingConn),
-    _storingPath(storingPath)
+: _colls(colls), _sortExpr(storingPath, colls), _filtExpr(storingPath, colls),
+    _storingConn(storingConn), _storingPath(storingPath)
 {
+    /* create the folder if needed */
+    std::filesystem::create_directories(_storingPath);
+
+    /* init Variables */
+    expression::Variable::Init(_storingPath, _colls);
+
     index();
 
     for (const auto& coll : _colls) {
@@ -97,9 +104,10 @@ void FNIFI::index() {
 
         /* update expressions */
         /* TODO: update saved expressions as well */
+        const auto collName = coll->getName();
         for (const auto& file : removed) {
-            _sortExpr.remove(file.second);
-            _filtExpr.remove(file.second);
+            _sortExpr.remove(file.second, collName);
+            _filtExpr.remove(file.second, collName);
             _toRemove.insert(file.first);
         }
         for (const auto& file : added) {
@@ -117,7 +125,7 @@ void FNIFI::index() {
 
 void FNIFI::sort(const std::string& expr) {
     _files.clear();
-    _sortExpr.build(expr, _storingPath);
+    _sortExpr.build(expr);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {
             const auto score = _sortExpr.run(&file.second);
@@ -128,7 +136,7 @@ void FNIFI::sort(const std::string& expr) {
 }
 
 void FNIFI::filter(const std::string& expr) {
-    _filtExpr.build(expr, _storingPath);
+    _filtExpr.build(expr);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {
             const auto check = (_filtExpr.run(&file.second) == 0);
