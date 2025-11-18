@@ -6,6 +6,10 @@
 using namespace fnifi;
 using namespace fnifi::expression;
 
+void Expression::Uncache(const std::filesystem::path& collPath, fileId_t id) {
+    DiskBacked::Uncache(collPath / EXPRESSIONS_DIRNAME, id);
+}
+
 Expression::Expression(const std::string& expr,
                        const std::filesystem::path& storingPath,
                        const std::vector<file::Collection*>& colls)

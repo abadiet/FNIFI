@@ -61,7 +61,7 @@ Collection::~Collection() {
 void Collection::index(
     std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
     std::unordered_set<const file::File*>& added,
-    std::unordered_set<const file::File*>& modified)
+    std::unordered_set<file::File*>& modified)
 {
     DLOG("Collection " << this << " is indexing")
 
@@ -93,8 +93,8 @@ void Collection::index(
             /* the file has been remove */
             const auto id = it->second.getId();
 
-            DLOG("Collection " << this << " realized that file " << path
-                 << " has been remove")
+            DLOG("Collection " << this << " realized that file \"" << path
+                 << "\" has been remove")
 
             /* remove from _mapping */
             _mapping.seekg(id * sizeof(MapNode));
@@ -128,7 +128,8 @@ void Collection::index(
     for (const auto& entry : _indexingConn->iterate("")) {
         if (entry.ctime > info.lastIndexing) {
             DLOG("Collection " << this << " found new file " << entry.path)
-            /* TODO: check if the file is not already indexed */
+            /* TODO: check if the file is not already indexed (happens
+             * when removed and then added */
 
             /* add the filepath */
             const auto lenght = static_cast<lenght_t>(entry.path.size());

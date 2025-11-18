@@ -42,8 +42,7 @@ package fnifi {
         abstract DiskBacked {
             -_storedColls : std::unordered_map<std::string, StoredColl>
             -getValue(file : const file::File*, noCache : bool) : expr_t
-            +{static} Uncache(storingPath : const std::string&,
-            collName : const std::string&, id : fileId_t)
+            +{static} Uncache(path : const std::filesystem::path&, id : fileId_t)
             +DiskBacked(key : const std::string&, storingPath : const std::filesystem::path&,
             colls : std::vector<file::Collection*>&, parentDirName : const std::string&)
             +~DiskBacked()
@@ -56,6 +55,7 @@ package fnifi {
             -_sxeval : sxeval::SXEval<expr_t>
             -_vars : std::vector<struct RefVar>
             -getValue(file : const file::File*, noCache : bool) : expr_t
+            +{static} Uncache(collPath : const std::filesystem::path&, id : fileId_t)
             +Expression(expr : const std::string&, storingPath : const std::filesystem::path&,
             colls : const std::vector<file::Collection*>&)
         }
@@ -65,6 +65,7 @@ package fnifi {
             -_key : std::string
             -getValue(file : const file::File*, noCache : bool) : expr_t
             +{static} GetType(name : const std::string&) : Type
+            +{static} Uncache(collPath : const std::filesystem::path&, id : fileId_t)
             +Variable(key : const std::string&, storingPath : const std::filesystem::path&,
             colls : const std::vector<file::Collection*>&)
         }

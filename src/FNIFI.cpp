@@ -94,19 +94,21 @@ void FNIFI::index() {
     for (auto& coll : _colls) {
         std::unordered_set<std::pair<const file::File*, fileId_t>> removed;
         std::unordered_set<const file::File*> added;
-        std::unordered_set<const file::File*> modified;
+        std::unordered_set<file::File*> modified;
 
         coll->index(removed, added, modified);
 
         /* update expressions */
-        /* TODO: update saved expressions as well */
-        const auto collName = coll->getName();
+        const auto collHash = Hash(coll->getName());
         for (const auto& file : removed) {
-            /*_sortExpr->remove(file.second, collName);
-            _filtExpr->remove(file.second, collName);*/
+            expression::Expression::Uncache(_storingPath / collHash,
+                                            file.second);
+            expression::Variable::Uncache(_storingPath / collHash,
+                                          file.second);
             _toRemove.insert(file.first);
         }
         for (const auto& file : added) {
+            /* process the file before inserting it */
             if (_sortExpr) {
                 _sortExpr->get(file);
             }
@@ -115,37 +117,36 @@ void FNIFI::index() {
             }
             _files.insert(file);
         }
-        for (const auto& file : modified) {
+        for (auto& file : modified) {
+            /* uncache for every expressions */
+            const auto id = file->getId();
+            expression::Expression::Uncache(_storingPath / collHash, id);
+            expression::Variable::Uncache(_storingPath / collHash, id);
+
+            /* overwrite the cache of the current expressions */
+            bool hasChanged = false;
             if (_sortExpr) {
-                _sortExpr->get(file, true);
+                const auto prevScore = file->getSortingScore();
+                const auto score = _sortExpr->get(file, true);
+                file->setSortingScore(score);
+                hasChanged = hasChanged || (score != prevScore);
             }
             if (_filtExpr) {
-                _filtExpr->get(file, true);
+                const auto prevCheck = file->isFilteredOut();
+                const auto check = _filtExpr->get(file, true);
+                file->setIsFilteredOut(check);
+                hasChanged = hasChanged || (check != prevCheck);
             }
-            _files.insert(file);
+
+            /* update _files */
+            if (hasChanged) {
+                auto pos = _files.find(file);
+                if (pos != _files.end()) {
+                    _files.erase(pos);
+                }
+                _files.insert(file);
+            }
         }
-        /*
-        for (const auto& file : removed) {
-            Expression::Uncache(collName, file.second);
-            Variable::Uncache(collName, file.second);
-            _sortExpr->update();
-            _filtExpr->update();
-            _toRemove.insert(file.first);
-        }
-        for (const auto& file : added) {
-            _sortExpr->get(file);
-            _filtExpr->get(file);
-            _files.insert(file);
-        }
-        for (const auto& file : modified) {
-            const auto id = file->getId()
-            Expression::Uncache(collName, id);
-            Variable::Uncache(collName, id);
-            _sortExpr->update();
-            _filtExpr->update();
-            _files.insert(file);
-        }
-        */
     }
 }
 

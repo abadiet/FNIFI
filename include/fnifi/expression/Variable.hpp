@@ -19,6 +19,7 @@ public:
     };
 
     static Type GetType(const std::string& name);
+    static void Uncache(const std::filesystem::path& collPath, fileId_t id);
 
     Variable(const std::string& key, const std::filesystem::path& storingPath,
              const std::vector<file::Collection*>& colls);

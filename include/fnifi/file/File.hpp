@@ -29,6 +29,7 @@ public:
     fileBuf_t preview() const;
     fileBuf_t read() const;
     void setSortingScore(expr_t score);
+    expr_t getSortingScore() const;
     void setIsFilteredOut(bool isFilteredOut);
     bool isFilteredOut() const;
     std::string getCollectionName() const;

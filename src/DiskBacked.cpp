@@ -1,10 +1,34 @@
 #include "fnifi/expression/DiskBacked.hpp"
+#include <csignal>
 
 #define RESULTS_FILENAME "results.fnifi"
 
 
 using namespace fnifi;
 using namespace fnifi::expression;
+
+void DiskBacked::Uncache(const std::filesystem::path& path, fileId_t id) {
+    DLOG("DiskBacked is uncaching file's id " << id << " for directory "
+         << path)
+    if (std::filesystem::exists(path)) {
+        for (const auto& dir : std::filesystem::directory_iterator(path)) {
+            if (dir.is_directory()) {
+                const auto filename = dir.path() / RESULTS_FILENAME;
+                if (std::filesystem::exists(filename)) {
+                    /* write an empty results on the id position */
+                    std::fstream file(filename, std::ios::in | std::ios::out |
+                                       std::ios::binary);
+                    file.seekp(id * sizeof(expr_t));
+                    Serialize(file, EMPTY_EXPR_T);
+                    file.close();
+                } else {
+                    WLOG("DiskBacked did not find the " << RESULTS_FILENAME
+                         << " for directory " << dir)
+                }
+            }
+        }
+    }
+}
 
 DiskBacked::DiskBacked(const std::string& key,
            const std::filesystem::path& storingPath,

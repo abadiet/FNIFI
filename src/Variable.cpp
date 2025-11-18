@@ -11,6 +11,10 @@ Variable::Type Variable::GetType(const std::string& name) {
     return Type::UNKOWN;
 }
 
+void Variable::Uncache(const std::filesystem::path& collPath, fileId_t id) {
+    DiskBacked::Uncache(collPath / VARIABLES_DIRNAME, id);
+}
+
 Variable::Variable(const std::string& key,
                    const std::filesystem::path& storingPath,
                    const std::vector<file::Collection*>& colls)
@@ -39,8 +43,7 @@ expr_t Variable::getValue(const file::File* file, bool noCache) {
             }
         case UNKOWN:
             {
-                /* TODO */
-                return 0;
+                TODO
             }
     }
 

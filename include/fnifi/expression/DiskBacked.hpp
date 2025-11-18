@@ -14,8 +14,8 @@ namespace expression {
 
 class DiskBacked {
 public:
-    static void Uncache(const std::filesystem::path& storingPath,
-                        const std::string& collName, fileId_t id);
+    static void Uncache(const std::filesystem::path& path, fileId_t id);
+
     DiskBacked(const std::string& key,
                const std::filesystem::path& storingPath,
                const std::vector<file::Collection*>& colls,

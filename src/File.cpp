@@ -103,6 +103,10 @@ void File::setSortingScore(expr_t score) {
     _sortScore = score;
 }
 
+expr_t File::getSortingScore() const {
+    return _sortScore;
+}
+
 void File::setIsFilteredOut(bool isFilteredOut) {
     _filteredOut = isFilteredOut;
 }

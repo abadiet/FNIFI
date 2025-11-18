@@ -24,7 +24,7 @@ public:
     void index(
         std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
         std::unordered_set<const file::File*>& added,
-        std::unordered_set<const file::File*>& modified);
+        std::unordered_set<file::File*>& modified);
     void defragment();
     std::string getFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
