@@ -1,6 +1,5 @@
 #include "fnifi/FNIFI.hpp"
 #include "fnifi/connection/IConnection.hpp"
-#include "fnifi/expression/Variable.hpp"
 
 
 using namespace fnifi;
@@ -68,14 +67,11 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
 FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
              connection::IConnection* storingConn,
              const std::filesystem::path& storingPath)
-: _colls(colls), _sortExpr(storingPath, colls), _filtExpr(storingPath, colls),
+: _colls(colls), _sortExpr(nullptr), _filtExpr(nullptr),
     _storingConn(storingConn), _storingPath(storingPath)
 {
     /* create the folder if needed */
     std::filesystem::create_directories(_storingPath);
-
-    /* init Variables */
-    expression::Variable::Init(_storingPath, _colls);
 
     index();
 
@@ -106,29 +102,59 @@ void FNIFI::index() {
         /* TODO: update saved expressions as well */
         const auto collName = coll->getName();
         for (const auto& file : removed) {
-            _sortExpr.remove(file.second, collName);
-            _filtExpr.remove(file.second, collName);
+            /*_sortExpr->remove(file.second, collName);
+            _filtExpr->remove(file.second, collName);*/
             _toRemove.insert(file.first);
         }
         for (const auto& file : added) {
-            _sortExpr.run(file);
-            _filtExpr.run(file);
+            if (_sortExpr) {
+                _sortExpr->get(file);
+            }
+            if (_filtExpr) {
+                _filtExpr->get(file);
+            }
             _files.insert(file);
         }
         for (const auto& file : modified) {
-            _sortExpr.run(file, true);
-            _filtExpr.run(file, true);
+            if (_sortExpr) {
+                _sortExpr->get(file, true);
+            }
+            if (_filtExpr) {
+                _filtExpr->get(file, true);
+            }
             _files.insert(file);
         }
+        /*
+        for (const auto& file : removed) {
+            Expression::Uncache(collName, file.second);
+            Variable::Uncache(collName, file.second);
+            _sortExpr->update();
+            _filtExpr->update();
+            _toRemove.insert(file.first);
+        }
+        for (const auto& file : added) {
+            _sortExpr->get(file);
+            _filtExpr->get(file);
+            _files.insert(file);
+        }
+        for (const auto& file : modified) {
+            const auto id = file->getId()
+            Expression::Uncache(collName, id);
+            Variable::Uncache(collName, id);
+            _sortExpr->update();
+            _filtExpr->update();
+            _files.insert(file);
+        }
+        */
     }
 }
 
 void FNIFI::sort(const std::string& expr) {
     _files.clear();
-    _sortExpr.build(expr);
+    _sortExpr = std::make_unique<expression::Expression>(expr, _storingPath, _colls);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {
-            const auto score = _sortExpr.run(&file.second);
+            const auto score = _sortExpr->get(&file.second);
             file.second.setSortingScore(score);
             _files.insert(&file.second);
         }
@@ -136,13 +162,21 @@ void FNIFI::sort(const std::string& expr) {
 }
 
 void FNIFI::filter(const std::string& expr) {
-    _filtExpr.build(expr);
+    _filtExpr = std::make_unique<expression::Expression>(expr, _storingPath, _colls);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {
-            const auto check = (_filtExpr.run(&file.second) == 0);
+            const auto check = (_filtExpr->get(&file.second) == 0);
             file.second.setIsFilteredOut(check);
         }
     }
+}
+
+void FNIFI::clearSort() {
+    _sortExpr = nullptr;
+}
+
+void FNIFI::clearFilter() {
+    _filtExpr = nullptr;
 }
 
 FNIFI::Iterator FNIFI::begin() {

@@ -12,6 +12,7 @@
 #include <iterator>
 #include <cstddef>
 #include <filesystem>
+#include <memory>
 
 
 namespace fnifi {
@@ -50,13 +51,15 @@ public:
     void defragment();
     void sort(const std::string& expr);
     void filter(const std::string& expr);
+    void clearSort();
+    void clearFilter();
     Iterator begin();
     Iterator end();
 
 private:
     const std::vector<file::Collection*> _colls;
-    expression::Expression _sortExpr;
-    expression::Expression _filtExpr;
+    std::unique_ptr<expression::Expression> _sortExpr;
+    std::unique_ptr<expression::Expression> _filtExpr;
     fileset_t _files;
     std::unordered_set<const file::File*> _toRemove;
     connection::IConnection* _storingConn;

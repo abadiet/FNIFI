@@ -17,8 +17,12 @@ using namespace fnifi::file;
 Collection::Collection(connection::IConnection* indexingConn,
                        connection::IConnection* storingConn,
                        const std::filesystem::path& tmpPath)
-: _indexingConn(indexingConn), _storingConn(storingConn), _tmpPath(tmpPath)
+: _indexingConn(indexingConn), _storingConn(storingConn),
+    _tmpPath(tmpPath / Hash(getName()))
 {
+    /* create the folders if needed */
+    std::filesystem::create_directories(_tmpPath);
+
     /* download files */
     pullStored();
 
