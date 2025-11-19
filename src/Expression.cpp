@@ -6,20 +6,22 @@
 using namespace fnifi;
 using namespace fnifi::expression;
 
-void Expression::Uncache(const std::filesystem::path& collPath, fileId_t id) {
-    DiskBacked::Uncache(collPath / EXPRESSIONS_DIRNAME, id);
+void Expression::Uncache(const utils::SyncDirectory& sync,
+                         const std::filesystem::path& collPath, fileId_t id)
+{
+    DiskBacked::Uncache(sync, collPath / EXPRESSIONS_DIRNAME, id);
 }
 
 Expression::Expression(const std::string& expr,
-                       const std::filesystem::path& storingPath,
+                       const utils::SyncDirectory& storing,
                        const std::vector<file::Collection*>& colls)
-: DiskBacked(expr, storingPath, colls, EXPRESSIONS_DIRNAME)
+: DiskBacked(expr, storing, colls, EXPRESSIONS_DIRNAME)
 {
     /* build sxeval */
     _handler =
         [&](const std::string& name) -> expr_t& {
             _vars.push_back({
-                std::make_unique<Variable>(name, storingPath, colls), 0});
+                std::make_unique<Variable>(name, storing, colls), 0});
             return _vars.back().ref;
         };
     _sxeval.build(expr, _handler);

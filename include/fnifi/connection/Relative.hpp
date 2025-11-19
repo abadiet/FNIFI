@@ -2,7 +2,7 @@
 #define FNIFI_CONNECTION_RELATIVE_HPP
 
 #include "fnifi/connection/IConnection.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <filesystem>
 
 
@@ -27,6 +27,7 @@ public:
     void upload(const std::filesystem::path& from,
                 const std::filesystem::path& to) override;
     void remove(const std::filesystem::path& filepath) override;
+    void createDirs(const std::filesystem::path& path) override;
     std::string getName() const override;
 
 private:

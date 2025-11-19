@@ -90,6 +90,10 @@ void Local::remove(const std::filesystem::path& filepath) {
     }
 }
 
+void Local::createDirs(const std::filesystem::path& path) {
+    std::filesystem::create_directories(path);
+}
+
 std::string Local::getName() const {
     return "local";
 }

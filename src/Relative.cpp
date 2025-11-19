@@ -55,6 +55,10 @@ void Relative::remove(const std::filesystem::path& filepath) {
     _conn->remove(_path / filepath);
 }
 
+void Relative::createDirs(const std::filesystem::path& path) {
+    _conn->createDirs(_path / path);
+}
+
 std::string Relative::getName() const {
     return "relative(" + _path.string() + ")-" + _conn->getName();
 }

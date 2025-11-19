@@ -64,13 +64,10 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
 }
 
 FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
-             const std::filesystem::path& storingPath)
+             const utils::SyncDirectory& storing)
 : _colls(colls), _sortExpr(nullptr), _filtExpr(nullptr),
-    _storingPath(storingPath)
+    _storing(storing)
 {
-    /* create the folder if needed */
-    std::filesystem::create_directories(_storingPath);
-
     index();
 
     for (const auto& coll : _colls) {
@@ -95,12 +92,10 @@ void FNIFI::index() {
         coll->index(removed, added, modified);
 
         /* update expressions */
-        const auto collHash = Hash(coll->getName());
+        const auto collHash = utils::Hash(coll->getName());
         for (const auto& file : removed) {
-            expression::Expression::Uncache(_storingPath / collHash,
-                                            file.second);
-            expression::Variable::Uncache(_storingPath / collHash,
-                                          file.second);
+            expression::Expression::Uncache(_storing, collHash, file.second);
+            expression::Variable::Uncache(_storing, collHash, file.second);
             _toRemove.insert(file.first);
         }
         for (const auto& file : added) {
@@ -116,8 +111,8 @@ void FNIFI::index() {
         for (auto& file : modified) {
             /* uncache for every expressions */
             const auto id = file->getId();
-            expression::Expression::Uncache(_storingPath / collHash, id);
-            expression::Variable::Uncache(_storingPath / collHash, id);
+            expression::Expression::Uncache(_storing, collHash, id);
+            expression::Variable::Uncache(_storing, collHash, id);
 
             /* overwrite the cache of the current expressions */
             bool hasChanged = false;
@@ -148,7 +143,8 @@ void FNIFI::index() {
 
 void FNIFI::sort(const std::string& expr) {
     _files.clear();
-    _sortExpr = std::make_unique<expression::Expression>(expr, _storingPath, _colls);
+    _sortExpr = std::make_unique<expression::Expression>(expr, _storing,
+                                                         _colls);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {
             const auto score = _sortExpr->get(&file.second);
@@ -159,7 +155,8 @@ void FNIFI::sort(const std::string& expr) {
 }
 
 void FNIFI::filter(const std::string& expr) {
-    _filtExpr = std::make_unique<expression::Expression>(expr, _storingPath, _colls);
+    _filtExpr = std::make_unique<expression::Expression>(expr, _storing,
+                                                         _colls);
     for (const auto& coll : _colls) {
         for (auto& file : *coll) {
             const auto check = (_filtExpr->get(&file.second) == 0);

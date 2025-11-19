@@ -1,14 +1,14 @@
 #ifndef FNIFI_FILE_COLLECTION_HPP
+#include <filesystem>
 #define FNIFI_FILE_COLLECTION_HPP
 
 #include "fnifi/connection/IConnection.hpp"
+#include "fnifi/utils/SyncDirectory.hpp"
 #include "fnifi/file/File.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <unordered_set>
 #include <unordered_map>
-#include <filesystem>
 #include <string>
-#include <fstream>
 #include <time.h>
 
 
@@ -18,8 +18,7 @@ namespace file {
 class Collection : virtual public IFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
-               connection::IConnection* storingConn,
-               const std::filesystem::path& tmpPath);
+               const utils::SyncDirectory& storing);
     ~Collection() override;
     void index(
         std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
@@ -49,15 +48,14 @@ private:
     };
 
     std::string getPreviewFilePath(fileId_t id) const;
-    void pullStored();
-    void pushStored();
 
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;
-    connection::IConnection* _storingConn;
-    const std::filesystem::path _tmpPath;
-    std::fstream _mapping;
-    std::fstream _filepaths;
+    const utils::SyncDirectory& _storing;
+    const std::filesystem::path _storingPath;
+    utils::SyncDirectory::FileStream _mapping;
+    utils::SyncDirectory::FileStream _filepaths;
+    utils::SyncDirectory::FileStream _info;
     std::unordered_set<fileId_t> _availableIds;
 };
 

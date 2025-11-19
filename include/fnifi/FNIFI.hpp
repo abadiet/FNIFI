@@ -4,6 +4,7 @@
 #include "fnifi/file/Collection.hpp"
 #include "fnifi/file/File.hpp"
 #include "fnifi/expression/Expression.hpp"
+#include "fnifi/utils/SyncDirectory.hpp"
 #include <sxeval/SXEval.hpp>
 #include <vector>
 #include <set>
@@ -44,7 +45,7 @@ public:
     };
 
     FNIFI(const std::vector<file::Collection*>& colls,
-          const std::filesystem::path& storingPath);
+          const utils::SyncDirectory& storing);
     void index();
     void defragment();
     void sort(const std::string& expr);
@@ -60,7 +61,7 @@ private:
     std::unique_ptr<expression::Expression> _filtExpr;
     fileset_t _files;
     std::unordered_set<const file::File*> _toRemove;
-    const std::filesystem::path _storingPath;
+    const utils::SyncDirectory& _storing;
 };
 
 }  /* namespace fnifi */

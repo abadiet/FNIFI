@@ -4,8 +4,9 @@
 #include "fnifi/file/File.hpp"
 #include "fnifi/file/Collection.hpp"
 #include "fnifi/expression/DiskBacked.hpp"
+#include "fnifi/utils/SyncDirectory.hpp"
 #include "fnifi/expression/Type.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <string>
 
 
@@ -15,9 +16,10 @@ namespace expression {
 class Variable : public DiskBacked {
 public:
     static Type GetType(const std::string& name);
-    static void Uncache(const std::filesystem::path& collPath, fileId_t id);
+    static void Uncache(const utils::SyncDirectory& sync,
+                        const std::filesystem::path& collPath, fileId_t id);
 
-    Variable(const std::string& key, const std::filesystem::path& storingPath,
+    Variable(const std::string& key, const utils::SyncDirectory& storing,
              const std::vector<file::Collection*>& colls);
 
 private:

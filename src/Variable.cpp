@@ -11,14 +11,16 @@ Type Variable::GetType(const std::string& name) {
     return Type::UNKOWN;
 }
 
-void Variable::Uncache(const std::filesystem::path& collPath, fileId_t id) {
-    DiskBacked::Uncache(collPath / VARIABLES_DIRNAME, id);
+void Variable::Uncache(const utils::SyncDirectory& sync,
+                       const std::filesystem::path& collPath, fileId_t id)
+{
+    DiskBacked::Uncache(sync, collPath / VARIABLES_DIRNAME, id);
 }
 
 Variable::Variable(const std::string& key,
-                   const std::filesystem::path& storingPath,
+                   const utils::SyncDirectory& storing,
                    const std::vector<file::Collection*>& colls)
-: DiskBacked(key, storingPath, colls, VARIABLES_DIRNAME)
+: DiskBacked(key, storing, colls, VARIABLES_DIRNAME)
 {
     /* decompose the key */
     const auto pos = key.find('.');

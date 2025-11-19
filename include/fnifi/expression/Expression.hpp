@@ -5,7 +5,8 @@
 #include "fnifi/file/Collection.hpp"
 #include "fnifi/expression/Variable.hpp"
 #include "fnifi/expression/DiskBacked.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/SyncDirectory.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <sxeval/SXEval.hpp>
 #include <string>
 #include <memory>
@@ -16,10 +17,11 @@ namespace expression {
 
 class Expression : public DiskBacked {
 public:
-    static void Uncache(const std::filesystem::path& collPath, fileId_t id);
+    static void Uncache(const utils::SyncDirectory& sync,
+                        const std::filesystem::path& collPath, fileId_t id);
 
     Expression(const std::string& expr,
-               const std::filesystem::path& storingPath,
+               const utils::SyncDirectory& storing,
                const std::vector<file::Collection*>& colls);
 
 private:

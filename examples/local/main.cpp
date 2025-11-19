@@ -7,33 +7,29 @@
 
 
 int main(int argc, char** argv) {
-    if (argc < 3 || argc % 2 != 0) {
+    if (argc != 4) {
         std::cout << "Usage: " << argv[0]
-            << " <tmpPath> <storingPath0> <indexingPath0> ... <storingPathN>"
-            " <indexingPathN>";
+            << " <storingLocal> <storingServer> <indexingServer>";
         return 1;
     }
 
-    /* Collections */
+    /* Connections */
     fnifi::connection::Local localConn;
     localConn.connect();
-    std::vector<fnifi::connection::IConnection*> conns;
-    std::vector<fnifi::file::Collection*> colls;
-    for (int i = 2; i < argc; i += 2) {
-        const auto storing = new fnifi::connection::Relative(&localConn,
-                                                             argv[i]);
-        const auto indexing = new fnifi::connection::Relative(&localConn,
-                                                              argv[i + 1]);
-        storing->connect();
-        indexing->connect();
-        conns.push_back(storing);
-        conns.push_back(indexing);
-        colls.push_back(new fnifi::file::Collection(indexing, storing, argv[1])
-                        );
-    }
+    fnifi::connection::Relative storingServer(&localConn, argv[2]);
+    storingServer.connect();
+    fnifi::connection::Relative indexingServer(&localConn, argv[3]);
+    indexingServer.connect();
+
+    /* Synchronized directory (local processing and remote saving) */
+    fnifi::utils::SyncDirectory storingLocal(&storingServer, argv[1]);
+
+    /* Collections */
+    fnifi::file::Collection coll(&indexingServer, storingLocal);
+    std::vector<fnifi::file::Collection*> colls = {&coll};
 
     /* File indexing */
-    fnifi::FNIFI fi(colls, argv[1]);
+    fnifi::FNIFI fi(colls, storingLocal);
 
     /* Defragment to optimize disk usage */
     fi.defragment();
@@ -69,15 +65,8 @@ int main(int argc, char** argv) {
     }
 
     /* Cleaning */
-    for (auto& coll : colls) {
-        delete coll;
-    }
-    for (auto& conn : conns) {
-        conn->disconnect();
-    }
     localConn.disconnect();
-    for (auto& conn : conns) {
-        delete conn;
-    }
+    indexingServer.disconnect();
+    storingServer.disconnect();
     return 0;
 }

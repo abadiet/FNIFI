@@ -1,5 +1,5 @@
 #include "fnifi/connection/SMB.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 
 #ifdef _WIN32
 #include <winnt.h>
@@ -129,7 +129,8 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
     return res;
 }
 
-void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer) {
+void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
+{
     const auto path = _path + filepath.string();
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_WRONLY |
                                            O_TRUNC | O_CREAT, 0);
@@ -154,7 +155,9 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer) 
     }
 }
 
-void SMB::download(const std::filesystem::path& from, const std::filesystem::path& to) {
+void SMB::download(const std::filesystem::path& from,
+                   const std::filesystem::path& to)
+{
     const auto content = read(from);
     std::ofstream file(to, std::ios::trunc);
     if (!file.is_open()) {
@@ -166,7 +169,9 @@ void SMB::download(const std::filesystem::path& from, const std::filesystem::pat
     file.close();
 }
 
-void SMB::upload(const std::filesystem::path& from, const std::filesystem::path& to) {
+void SMB::upload(const std::filesystem::path& from,
+                 const std::filesystem::path& to)
+{
     std::ifstream file(from, std::ios::ate);
     const auto len = file.tellg();
     fileBuf_t buf(static_cast<size_t>(len), '\0');
@@ -180,6 +185,13 @@ void SMB::remove(const std::filesystem::path& filepath) {
     const auto path = _path + filepath.string();
     if (smbc_getFunctionUnlink(_ctx)(_ctx, path.c_str()) != 0) {
         ELOG("SMB " << this << " failed to remove " << path)
+    }
+}
+
+void SMB::createDirs(const std::filesystem::path& path) {
+    const auto dirpath = _path + path.string();
+    if (smbc_getFunctionMkdir(_ctx)(_ctx, dirpath.c_str(), 0) != 0) {
+        ELOG("SMB " << this << " failed to create directories " << path)
     }
 }
 

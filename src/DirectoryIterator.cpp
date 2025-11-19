@@ -1,5 +1,5 @@
 #include "fnifi/connection/DirectoryIterator.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <sys/stat.h>
 
 

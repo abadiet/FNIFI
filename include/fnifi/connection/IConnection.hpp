@@ -1,7 +1,7 @@
 #ifndef FNIFI_CONNECTION_ICONNECTION_HPP
 #define FNIFI_CONNECTION_ICONNECTION_HPP
 
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include "fnifi/connection/DirectoryIterator.hpp"
 #include <sys/stat.h>
 
@@ -27,6 +27,7 @@ public:
     virtual void upload(const std::filesystem::path& from,
                         const std::filesystem::path& to) = 0;
     virtual void remove(const std::filesystem::path& filepath) = 0;
+    virtual void createDirs(const std::filesystem::path& path) = 0;
     virtual std::string getName() const = 0;
 };
 

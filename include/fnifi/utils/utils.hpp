@@ -1,5 +1,5 @@
-#ifndef FNIFI_UTILS_HPP
-#define FNIFI_UTILS_HPP
+#ifndef FNIFI_UTILS_UTILS_HPP
+#define FNIFI_UTILS_UTILS_HPP
 
 #include <vector>
 #include <ostream>
@@ -39,6 +39,11 @@ typedef std::vector<unsigned char> fileBuf_t;
 typedef unsigned int fileId_t;
 typedef long int expr_t;
 
+bool operator>(const timespec& lhs, const timespec& rhs);
+
+
+namespace utils {
+
 template <typename T>
 std::ostream& Serialize(std::ostream& os, const T& var);
 template <typename T>
@@ -48,22 +53,23 @@ std::istream& Deserialize(std::istream& is, T& var);
 template <typename T>
 std::istream& Deserialize(std::istream& is, std::vector<T>& var);
 
-bool operator>(const timespec& lhs, const timespec& rhs);
-
 std::string Hash(const std::string& s);
 
+}  /* namespace utils */
 }  /* namespace fnifi */
 
 /* IMPLEMENTATIONS */
 
 
 template <typename T>
-std::ostream& fnifi::Serialize(std::ostream& os, const T& var) {
+std::ostream& fnifi::utils::Serialize(std::ostream& os, const T& var) {
    return os.write(reinterpret_cast<const char*>(&var), sizeof(var));
 }
 
 template <typename T>
-std::ostream& fnifi::Serialize(std::ostream& os, const std::vector<T>& var) {
+std::ostream& fnifi::utils::Serialize(std::ostream& os,
+                                      const std::vector<T>& var)
+{
     size_t size = var.size();
     os.write(reinterpret_cast<const char*>(&size), sizeof(size));
     for (const auto& elem : var) {
@@ -73,12 +79,13 @@ std::ostream& fnifi::Serialize(std::ostream& os, const std::vector<T>& var) {
 }
 
 template <typename T>
-std::istream& fnifi::Deserialize(std::istream& is, T& var) {
+std::istream& fnifi::utils::Deserialize(std::istream& is, T& var) {
     return is.read(reinterpret_cast<char*>(&var), sizeof(var));
 }
 
 template <typename T>
-std::istream& fnifi::Deserialize(std::istream& is, std::vector<T>& var) {
+std::istream& fnifi::utils::Deserialize(std::istream& is, std::vector<T>& var)
+{
     size_t size;
     is.read(reinterpret_cast<char*>(&size), sizeof(size));
     var.clear();
@@ -96,7 +103,7 @@ inline bool fnifi::operator>(const timespec& lhs, const timespec& rhs) {
     return lhs.tv_sec > rhs.tv_sec;
 }
 
-inline std::string fnifi::Hash(const std::string& s) {
+inline std::string fnifi::utils::Hash(const std::string& s) {
     auto res = s;
     for (char c : "/\\:*?\"<>|") {
         std::replace(res.begin(), res.end(), c, '_');
@@ -104,4 +111,4 @@ inline std::string fnifi::Hash(const std::string& s) {
     return res;
 }
 
-#endif  /* FNIFI_UTILS_HPP */
+#endif  /* FNIFI_UTILS_UTILS_HPP */

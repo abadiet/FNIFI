@@ -3,7 +3,7 @@
 
 #include "fnifi/file/IFileHelper.hpp"
 #include "fnifi/expression/Type.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <sys/stat.h>
 #include <exiv2/exiv2.hpp>
 #include <string>

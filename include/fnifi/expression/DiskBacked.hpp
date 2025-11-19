@@ -2,7 +2,8 @@
 #define FNIFI_EXPRESSION_DISKBACKED_HPP
 
 #include "fnifi/file/Collection.hpp"
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/SyncDirectory.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <string>
 #include <filesystem>
 #include <unordered_map>
@@ -14,19 +15,19 @@ namespace expression {
 
 class DiskBacked {
 public:
-    static void Uncache(const std::filesystem::path& path, fileId_t id);
+    static void Uncache(const utils::SyncDirectory& storing,
+                        const std::filesystem::path& path, fileId_t id);
 
     DiskBacked(const std::string& key,
-               const std::filesystem::path& storingPath,
+               const utils::SyncDirectory& storing,
                const std::vector<file::Collection*>& colls,
                const std::filesystem::path& parentDirName);
     virtual ~DiskBacked();
     expr_t get(const file::File* file);
-    void update();
 
 private:
     struct StoredColl {
-        std::unique_ptr<std::fstream> file;
+        std::unique_ptr<utils::SyncDirectory::FileStream> file;
         fileId_t maxId;
         std::filesystem::path path;
     };

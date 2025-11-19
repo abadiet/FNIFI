@@ -1,7 +1,7 @@
 #ifndef FNIFI_FILE_IFILEHELPER_HPP
 #define FNIFI_FILE_IFILEHELPER_HPP
 
-#include "fnifi/utils.hpp"
+#include "fnifi/utils/utils.hpp"
 #include <sys/stat.h>
 
 
