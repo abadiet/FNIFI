@@ -68,5 +68,6 @@ int main(int argc, char** argv) {
     localConn.disconnect();
     indexingServer.disconnect();
     storingServer.disconnect();
+
     return 0;
 }

@@ -1,0 +1,63 @@
+#include <fnifi/FNIFI.hpp>
+#include <fnifi/file/Collection.hpp>
+#include <fnifi/file/File.hpp>
+#include <fnifi/connection/SMB.hpp>
+#include <fnifi/connection/Relative.hpp>
+#include <iostream>
+#include <ostream>
+
+
+int main(int argc, char** argv) {
+    if (argc != 9) {
+        std::cout << "Usage: " << argv[0]
+            << " <storingLocal> <storingServer> <indexingServer> <serverSMB> "
+            "<shareSMB> <workgroupSMB> <usernameSMB> <passwordSMB>"
+            << std::endl << "example: " << argv[0] << " ~/.fnifi .fnifi "
+            "content 127.0.0.1 MyNAS WORKGROUP user0 mypassword" << std::endl
+            << "will index smb://127.0.0.1/MyNAS/content, connected as user0 with "
+            "password 'mypassword' and will save indexing in "
+            "smb://127.0.0.1/MyNAS/.fnifi and locally in ~/.fnifi";
+        return 1;
+    }
+
+    const std::string storingLocal(argv[1]);
+    const std::string storingServer(argv[2]);
+    const std::string indexingServer(argv[3]);
+    const std::string serverSMB(argv[4]);
+    const std::string shareSMB(argv[5]);
+    const std::string workgroupSMB(argv[6]);
+    const std::string usernameSMB(argv[7]);
+    const std::string passwordSMB(argv[8]);
+
+    /* Connections */
+    fnifi::connection::SMB connection(serverSMB, shareSMB, workgroupSMB,
+                                      usernameSMB, passwordSMB);
+    connection.connect();
+    fnifi::connection::Relative storingSer(&connection, storingServer);
+    storingSer.connect();
+    fnifi::connection::Relative indexingSer(&connection, indexingServer);
+    indexingSer.connect();
+
+    /* Synchronized directory (local processing and remote saving) */
+    fnifi::utils::SyncDirectory storingLoc(&storingSer, storingLocal);
+
+    /* Collections: the directory we want to index */
+    fnifi::file::Collection coll(&indexingSer, storingLoc);
+    std::vector<fnifi::file::Collection*> colls = {&coll};
+
+    /* File indexing */
+    fnifi::FNIFI fi(colls, storingLoc);
+
+    /* Loop over the files */
+    std::cout << "Randomly loop over all the files:" << std::endl;
+    for (const auto file : fi) {
+        std::cout << file->getPath() << std::endl;
+    }
+
+    /* Cleaning */
+    connection.disconnect();
+    indexingSer.disconnect();
+    storingSer.disconnect();
+
+    return 0;
+}
