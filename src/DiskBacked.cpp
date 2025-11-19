@@ -10,8 +10,9 @@ using namespace fnifi::expression;
 void DiskBacked::Uncache(const utils::SyncDirectory& storing,
                          const std::filesystem::path& path, fileId_t id)
 {
-    DLOG("DiskBacked is uncaching file's id " << id << " for directory "
-         << path)
+    DLOG("DiskBacked", "(static)", "Uncaching file id " << id
+         << " for directory " << path)
+
     if (std::filesystem::exists(path)) {
         for (const auto& dir : std::filesystem::directory_iterator(path)) {
             if (dir.is_directory()) {
@@ -32,6 +33,8 @@ DiskBacked::DiskBacked(const std::string& key,
            const std::vector<file::Collection*>& colls,
            const std::filesystem::path& parentDirName)
 {
+    DLOG("DiskBacked", this, "Instanciation for key \"" << key << "\"")
+
     for (const auto& coll : colls) {
         /* create or open the results.fnifi file */
         const auto name = coll->getName();
@@ -72,12 +75,14 @@ DiskBacked::~DiskBacked() {
 }
 
 expr_t DiskBacked::get(const file::File* file) {
+    DLOG("DiskBacked", this, "Retrieving result for File " << file)
+
     /* get the associated stored file */
     const auto stored = _storedColls.find(file->getCollectionName());
     if (stored == _storedColls.end()) {
-        ELOG("DiskBacked " << this << " has been called on a file that belongs"
-             " to an unknown Collection (" << file->getCollectionName()
-             << ") Aborting the call.")
+        ELOG("DiskBacked ", this, "Called on a file that belongs to an unknown"
+             " Collection (" << file->getCollectionName() << ") Aborting the "
+             "call.")
         return 0;
     }
 
@@ -101,6 +106,8 @@ expr_t DiskBacked::get(const file::File* file) {
             /* the value was saved */
             return res;
         }
+
+        stored->second.file->seekg(std::streamoff(pos));
     } else {
         /* filling the file up to the position of the value */
         stored->second.file->seekp(0, std::ios::end);
@@ -110,6 +117,8 @@ expr_t DiskBacked::get(const file::File* file) {
         }
         stored->second.maxId = id;
     }
+
+    DLOG("DiskBacked ", this, "Results for File " << file << " was not cached")
 
     const auto res = getValue(file);
     stored->second.file->seekp(std::streamoff(pos));

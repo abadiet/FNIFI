@@ -19,6 +19,8 @@ SyncDirectory::FileStream::~FileStream() {
 }
 
 bool SyncDirectory::FileStream::pull() {
+    DLOG("FileStream", this, "Pull")
+
     close();
 
     const auto hasChanged = _sync.pull(_abspath, _relapath);
@@ -29,6 +31,8 @@ bool SyncDirectory::FileStream::pull() {
 }
 
 void SyncDirectory::FileStream::push() {
+    DLOG("FileStream", this, "Push")
+
     flush();
 
     /* fill the buffer */
@@ -66,6 +70,9 @@ SyncDirectory::FileStream::FileStream(const std::filesystem::path& abspath,
 }
 
 void SyncDirectory::FileStream::setup(bool ate) {
+    DLOG("FileStream", this, "Instanciation with absolute path " << _abspath
+         << " and SyncDirectory " << &_sync)
+
     std::ios::openmode flags = std::ios::in | std::ios::out | std::ios::binary;
     if (ate) {
         flags |= std::ios::ate;
@@ -74,12 +81,12 @@ void SyncDirectory::FileStream::setup(bool ate) {
         flags |= std::ios::trunc;
     }
 
-    open(_abspath,flags);
+    open(_abspath, flags);
 
     if (!is_open()) {
         std::ostringstream msg;
         msg << "Cannot open file " << _abspath;
-        ELOG(msg.str())
+        ELOG("FileStream", this, msg.str())
         throw std::runtime_error(msg.str());
     }
 }
@@ -87,7 +94,10 @@ void SyncDirectory::FileStream::setup(bool ate) {
 SyncDirectory::SyncDirectory(connection::IConnection* conn,
                              const std::filesystem::path& path)
 : _conn(conn), _path(path)
-{}
+{
+    DLOG("SyncDirectory", this, "Instanciation for IConnection " << conn
+         << " and path " << path)
+}
 
 SyncDirectory::FileStream SyncDirectory::open(
     const std::filesystem::path& filepath, bool ate) const
@@ -100,6 +110,9 @@ SyncDirectory::FileStream SyncDirectory::open(
 std::filesystem::path SyncDirectory::setupFileStream(
     const std::filesystem::path& filepath) const
 {
+    DLOG("SyncDirectory", this, "Setup directories and file for a FileStream "
+         "instance")
+
     /* create the directories if needed */
     const auto abspath = _path / filepath;
     std::filesystem::create_directories(abspath.parent_path());
@@ -117,8 +130,6 @@ bool SyncDirectory::exists(const std::filesystem::path& filepath) const {
 bool SyncDirectory::pull(const std::filesystem::path& abspath,
                          const std::filesystem::path& relapath) const
 {
-    DLOG("SyncDirectory " << this << " download " << abspath)
-
     if (_conn->exists(relapath)) {
         _conn->download(relapath, abspath);
         return true;
@@ -129,7 +140,5 @@ bool SyncDirectory::pull(const std::filesystem::path& abspath,
 void SyncDirectory::push(const std::filesystem::path& relapath,
                          const fileBuf_t& buf) const
 {
-    DLOG("SyncDirectory " << this << " upload " << _path / relapath)
-
     _conn->write(relapath, buf);
 }

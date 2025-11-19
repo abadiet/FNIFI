@@ -13,7 +13,7 @@ class IConnection {
 public:
     virtual ~IConnection();
     virtual void connect() = 0;
-    virtual void disconnect(bool agressive = false) = 0;
+    virtual void disconnect(bool force = false) = 0;
     virtual DirectoryIterator iterate(const std::filesystem::path& path,
                                       bool recursive = true, bool files = true,
                                       bool folders = false) = 0;

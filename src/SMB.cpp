@@ -22,6 +22,9 @@ SMB::SMB(const std::string& server, const std::string& share,
          const std::string& password)
 : _userdata({server, share, workgroup, username, password}), _ctx(nullptr)
 {
+    DLOG("SMB", this, "Instanciation for server \"" << server << "\" and share"
+         " \"" << share << "\"")
+
     if (server == "") {
         throw std::runtime_error("Trying to instantiate a SMB object without "
                                  "providing a server");
@@ -40,13 +43,17 @@ SMB::~SMB() {
 }
 
 void SMB::connect() {
+    DLOG("SMB", this, "Connection")
+
     if (_ctx) {
         return;
     }
 
     _ctx = smbc_new_context();
     if (!_ctx) {
-        throw std::runtime_error("Cannot setup the SMB context");
+        const auto msg("Cannot setup the SMB context");
+        ELOG("SMB", this, msg)
+        throw std::runtime_error(msg);
     }
 
     smbc_setOptionUserData(_ctx, &_userdata);
@@ -54,7 +61,9 @@ void SMB::connect() {
                                         SMB::get_auth_data_with_context_fn);
     _ctx = smbc_init_context(_ctx);
     if (!_ctx) {
-        throw std::runtime_error("Cannot setup the SMB context");
+        const auto msg("Cannot setup the SMB context");
+        ELOG("SMB", this, msg)
+        throw std::runtime_error(msg);
     }
 }
 
@@ -67,11 +76,14 @@ void SMB::disconnect(bool aggresive) {
 DirectoryIterator SMB::iterate(const std::filesystem::path& path,
                                bool recursive, bool files, bool folders)
 {
+    DLOG("SMB", this, "Iteration over path " << path)
+
     const auto fullpath = _path + path.string();
     auto rootdir = smbc_getFunctionOpendir(_ctx)(_ctx, fullpath.c_str());
     if (!rootdir) {
-        ELOG("SMB " << this << " failed to open the directory " << fullpath
-             << ": " << strerror(errno))
+        WLOG("SMB", this, "Failed to open the directory " << fullpath
+             << ": will return an empty iterator. From errno: "
+             << strerror(errno))
         return DirectoryIterator();
     }
 
@@ -84,6 +96,8 @@ DirectoryIterator SMB::iterate(const std::filesystem::path& path,
 }
 
 bool SMB::exists(const std::filesystem::path& filepath) {
+    DLOG("SMB", this, "Existance check of " << filepath)
+
     /* TODO: a bit dirty */
     struct stat filestat;
     const auto path = _path + filepath.string();
@@ -91,21 +105,27 @@ bool SMB::exists(const std::filesystem::path& filepath) {
 }
 
 struct stat SMB::getStats(const std::filesystem::path& filepath) {
+    DLOG("SMB", this, "Get statistics for " << filepath)
+
     struct stat filestat;
     const auto path = _path + filepath.string();
     if (smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &filestat) != 0) {
-        ELOG("SMB " << this << " failed to get the stat of " << path
-             << ": " << strerror(errno))
+        WLOG("SMB", this, "Failed to get the stat of " << path
+             << ": will return the default instanciated stat. From errno: "
+             << strerror(errno))
     }
     return filestat;
 }
 
 fileBuf_t SMB::read(const std::filesystem::path& filepath) {
+    DLOG("SMB", this, "Read file " << filepath)
+
     fileBuf_t res;
     const auto path = _path + filepath.string();
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_RDONLY, 0);
     if (!file) {
-        ELOG("SMB " << this << " failed to open " << path << ": "
+        WLOG("SMB", this, "Failed to open " << path
+             << ": will return an empty buffer. From errno: "
              << strerror(errno))
         return res;
     }
@@ -117,12 +137,13 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
         len = smbc_getFunctionRead(_ctx)(_ctx, file, buf, BUFFER_SZ);
     }
     if (len < 0) {
-        ELOG("SMB " << this << " failed to read " << path << ": "
+        WLOG("SMB", this, "Failed to read " << path
+             << ": will return the potentially corrupted buffer. From errno: "
              << strerror(errno))
     }
 
     if (smbc_getFunctionClose(_ctx)(_ctx, file) != 0) {
-        ELOG("SMB " << this << " failed to close " << path << ": "
+        WLOG("SMB", this, "Failed to close " << path << ". From errno: "
              << strerror(errno))
     }
 
@@ -131,11 +152,13 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
 
 void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
 {
+    DLOG("SMB", this, "Write to file " << filepath)
+
     const auto path = _path + filepath.string();
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_WRONLY |
                                            O_TRUNC | O_CREAT, 0);
     if (!file) {
-        ELOG("SMB " << this << " failed to open " << path << ": "
+        WLOG("SMB", this, "Failed to open " << path << ". From errno: "
              << strerror(errno))
         return;
     }
@@ -144,13 +167,13 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
         const auto len = smbc_getFunctionWrite(_ctx)(_ctx, file, buffer.data(),
                                                      buffer.size());
         if (len < 0 || static_cast<size_t>(len) != buffer.size()) {
-            ELOG("SMB " << this << " failed to write to " << path
-                 << ": " << strerror(errno))
+            WLOG("SMB", this, "Failed to write to " << path << ". From errno: "
+                 << strerror(errno))
         }
     }
 
     if (smbc_getFunctionClose(_ctx)(_ctx, file) != 0) {
-        ELOG("SMB " << this << " failed to close " << path << ": "
+        WLOG("SMB", this, "Failed to close " << path << ". From errno: "
              << strerror(errno))
     }
 }
@@ -158,10 +181,12 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
 void SMB::download(const std::filesystem::path& from,
                    const std::filesystem::path& to)
 {
+    DLOG("SMB", this, "Download from " << from << " to " << to)
+
     const auto content = read(from);
     std::ofstream file(to, std::ios::trunc);
     if (!file.is_open()) {
-        ELOG("SMB " << this << " failed to open " << to)
+        WLOG("SMB", this, "Failed to open " << to)
         return;
     }
     file.write(reinterpret_cast<const char*>(content.data()),
@@ -172,6 +197,8 @@ void SMB::download(const std::filesystem::path& from,
 void SMB::upload(const std::filesystem::path& from,
                  const std::filesystem::path& to)
 {
+    DLOG("SMB", this, "Upload from " << from << " to " << to)
+
     std::ifstream file(from, std::ios::ate);
     const auto len = file.tellg();
     fileBuf_t buf(static_cast<size_t>(len), '\0');
@@ -182,16 +209,20 @@ void SMB::upload(const std::filesystem::path& from,
 }
 
 void SMB::remove(const std::filesystem::path& filepath) {
+    DLOG("SMB", this, "Remove file " << filepath)
+
     const auto path = _path + filepath.string();
     if (smbc_getFunctionUnlink(_ctx)(_ctx, path.c_str()) != 0) {
-        ELOG("SMB " << this << " failed to remove " << path)
+        WLOG("SMB", this, "Failed to remove " << path)
     }
 }
 
 void SMB::createDirs(const std::filesystem::path& path) {
+    DLOG("SMB", this, "Create directories for path " << path)
+
     const auto dirpath = _path + path.string();
     if (smbc_getFunctionMkdir(_ctx)(_ctx, dirpath.c_str(), 0) != 0) {
-        ELOG("SMB " << this << " failed to create directories " << path)
+        WLOG("SMB", this, "Failed to create directories " << path)
     }
 }
 
@@ -268,9 +299,13 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
         auto dir = smbc_getFunctionOpendir(d->self->_ctx)(d->self->_ctx,
                                                           fullpath.c_str());
         if (!dir) {
-            ELOG("SMB " << d->self << " failed to open the directory "
-                 << absname << ": " << strerror(errno))
+            WLOG("SMB", d->self, "Failed to open the directory " << absname
+                 << ": will ignore this directory. From errno: "
+                 << strerror(errno))
+
+            return nextEntry(data, absname);
         }
+
         d->dirs.push_back({dir, absname});
 
         if (!d->folders) {

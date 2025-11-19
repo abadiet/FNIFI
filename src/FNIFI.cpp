@@ -1,4 +1,6 @@
 #include "fnifi/FNIFI.hpp"
+#include <ctime>
+#include <cstdlib>
 
 
 using namespace fnifi;
@@ -7,7 +9,9 @@ FNIFI::Iterator::Iterator(FNIFI::fileset_t::const_iterator p,
                           std::unordered_set<const file::File*>& toRemove,
                           FNIFI::fileset_t& files)
 : _p(p), _toRemove(toRemove), _files(files)
-{}
+{
+    DLOG("FNIFI::Iterator", this, "Instanciation for File " << *p)
+}
 
 FNIFI::Iterator::reference FNIFI::Iterator::operator*() const {
     return *_p;
@@ -68,6 +72,11 @@ FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
 : _colls(colls), _sortExpr(nullptr), _filtExpr(nullptr),
     _storing(storing)
 {
+    DLOG("FNIFI", this, "Instanciation with " << colls.size() << " collections"
+         " and SyncDirectory " << &storing)
+
+    std::srand(static_cast<unsigned int>(std::time({})));
+
     index();
 
     for (const auto& coll : _colls) {
@@ -78,18 +87,26 @@ FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
 }
 
 void FNIFI::defragment() {
+    DLOG("FNIFI", this, "Defragmentation")
+ 
     for (auto& coll : _colls) {
          coll->defragment();
     }
 }
 
 void FNIFI::index() {
+    DLOG("FNIFI", this, "Indexation")
+
     for (auto& coll : _colls) {
         std::unordered_set<std::pair<const file::File*, fileId_t>> removed;
         std::unordered_set<const file::File*> added;
         std::unordered_set<file::File*> modified;
 
         coll->index(removed, added, modified);
+
+        ILOG("FNIFI", this, "Collection " << &coll << " found "
+             << removed.size() << " removed files, " << added.size()
+             << " added and " << modified.size() << " modified")
 
         /* update expressions */
         const auto collHash = utils::Hash(coll->getName());
@@ -142,6 +159,8 @@ void FNIFI::index() {
 }
 
 void FNIFI::sort(const std::string& expr) {
+    DLOG("FNIFI", this, "Sorting with expresion \"" << expr << "\"")
+
     _files.clear();
     _sortExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
@@ -155,6 +174,8 @@ void FNIFI::sort(const std::string& expr) {
 }
 
 void FNIFI::filter(const std::string& expr) {
+    DLOG("FNIFI", this, "Filtering with expresion \"" << expr << "\"")
+
     _filtExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
@@ -166,10 +187,14 @@ void FNIFI::filter(const std::string& expr) {
 }
 
 void FNIFI::clearSort() {
+    DLOG("FNIFI", this, "Clearing sorting algorithm")
+
     _sortExpr = nullptr;
 }
 
 void FNIFI::clearFilter() {
+    DLOG("FNIFI", this, "Filtering sorting algorithm")
+
     _filtExpr = nullptr;
 }
 

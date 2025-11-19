@@ -6,14 +6,17 @@ using namespace fnifi::connection;
 
 Relative::Relative(IConnection* conn, const std::filesystem::path& path)
 : _conn(conn), _path(path)
-{}
+{
+    DLOG("Relative", this, "Instanciation for IConnection " << conn << " and "
+         "path " << path)
+}
 
 void Relative::connect() {
     _conn->connect();
 }
 
-void Relative::disconnect(bool agressive) {
-    _conn->disconnect(agressive);
+void Relative::disconnect(bool force) {
+    _conn->disconnect(force);
 }
 
 DirectoryIterator Relative::iterate(const std::filesystem::path& path,

@@ -2,6 +2,7 @@
 #include "fnifi/utils/utils.hpp"
 #include <ctime>
 #include <cstdlib>
+#include <sstream>
 
 
 using namespace fnifi;
@@ -33,12 +34,15 @@ std::filesystem::path TempFile::RandomFilepath(unsigned char size) {
 TempFile::TempFile()
 : _path(RandomFilepath(8))
 {
+    DLOG("TempFile", this, "Instanciation with path " << _path)
+
     open(_path, std::ios::in | std::ios::out | std::ios::binary |
          std::ios::trunc);
+
     if (!is_open()) {
         std::ostringstream msg;
-        msg << "TempFile " << this << " could not create file " << _path;
-        ELOG(msg.str())
+        msg << "Could not create file " << _path;
+        ELOG("TempFile", this, msg.str())
         throw std::runtime_error(msg.str());
     }
 }

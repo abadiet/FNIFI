@@ -22,6 +22,8 @@ Variable::Variable(const std::string& key,
                    const std::vector<file::Collection*>& colls)
 : DiskBacked(key, storing, colls, VARIABLES_DIRNAME)
 {
+    DLOG("Variable", this, "Instanciation for key \"" << key << "\"")
+
     /* decompose the key */
     const auto pos = key.find('.');
     if (pos == std::string::npos) {
@@ -36,6 +38,8 @@ Variable::Variable(const std::string& key,
 }
 
 expr_t Variable::getValue(const file::File* file) {
+    DLOG("Variable", this, "Getting value for File " << file)
+
     /* TODO consider using File::getMetadata */
     switch (_type) {
         case CTIME:

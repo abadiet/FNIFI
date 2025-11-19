@@ -189,7 +189,7 @@ package fnifi {
 
         interface IConnection {
             +connect()
-            +disconnect(aggressive : bool := false)
+            +disconnect(force : bool := false)
             +iterate(path : std::filesystem::path&, recursive : bool := true,
             files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : std::filesystem::path&) : bool
@@ -208,7 +208,7 @@ package fnifi {
             -_path : std::string
             +Relative(conn : IConnection*, path : std::filesystem::path&)
             +connect()
-            +disconnect(aggressive : bool := false)
+            +disconnect(force : bool := false)
             +iterate(path : std::filesystem::path&, recursive : bool := true,
             files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : std::filesystem::path&) : bool
@@ -229,7 +229,7 @@ package fnifi {
             +SMB(addr : const std::string&, user : const std::string&,
             pwd : const std::string&)
             +connect()
-            +disconnect(aggressive : bool := false)
+            +disconnect(force : bool := false)
             +iterate(path : std::filesystem::path&, recursive : bool := true,
             files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : std::filesystem::path&) : bool
@@ -246,7 +246,7 @@ package fnifi {
         class Local extends IConnection {
             +Local()
             +connect()
-            +disconnect(aggressive : bool := false)
+            +disconnect(force : bool := false)
             +iterate(path : std::filesystem::path&, recursive : bool := true,
             files : bool := true, folders := false) : DirectoryIterator
             +exists(filepath : std::filesystem::path&) : bool

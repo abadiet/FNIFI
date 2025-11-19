@@ -16,7 +16,7 @@ public:
         const std::string& password = "");
     ~SMB() override;
     void connect() override;
-    void disconnect(bool agressive = false) override;
+    void disconnect(bool force = false) override;
     DirectoryIterator iterate(const std::filesystem::path& path,
                               bool recursive = true, bool files = true,
                               bool folders = false) override;

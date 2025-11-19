@@ -24,38 +24,57 @@ DirectoryIterator::DirectoryIterator(
     const std::filesystem::recursive_directory_iterator& entries, bool files,
     bool folders)
 {
+    DLOG("DirectoryIterator", this, "Instanciation via "
+         "std::filesystem::recursive_directory_iterator")
+
     for (const auto& entry : entries) {
         addEntry(entry, files, folders);
     }
+
+    ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
 }
 
 DirectoryIterator::DirectoryIterator(
     const std::filesystem::directory_iterator& entries, bool files,
     bool folders)
 {
+    DLOG("DirectoryIterator", this, "Instanciation via "
+         "std::filesystem::directory_iterator")
+
     for (const auto& entry : entries) {
         addEntry(entry, files, folders);
     }
+
+    ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
 }
 DirectoryIterator::DirectoryIterator(void* data, const std::function<
     const libsmb_file_info*(void*, std::string&)>& nextEntry)
 {
+    DLOG("DirectoryIterator", this, "Instanciation via SMB callback")
+
     std::string name;
     auto entry = nextEntry(data, name);
     while (entry != nullptr) {
         _entries.insert({name, entry->ctime_ts});
         entry = nextEntry(data, name);
     }
+
+    ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
 }
 
 DirectoryIterator::DirectoryIterator(const DirectoryIterator& dirit,
                                      const std::filesystem::path& path)
 {
+    DLOG("DirectoryIterator", this, "Instanciation via DirectoryIterator with "
+         "path " << path)
+
     for (auto& entry : dirit._entries) {
         const auto name = std::filesystem::proximate(entry.path, path)
             .string();
         _entries.insert({name, entry.ctime});
     }
+
+    ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
 }
 
 std::unordered_set<DirectoryIterator::Entry, DirectoryIterator::EntryHash>
@@ -83,9 +102,8 @@ void DirectoryIterator::addEntry(const std::filesystem::directory_entry& entry,
         if (lstat(entry.path().c_str(), &fileStat) == 0) {
             _entries.insert({entry.path(), fileStat.st_ctimespec});
         } else {
-            ELOG("DirectoryIterator " << this
-                 << " failed to get the metadata of " << entry.path()
-                 << ". This file is ignored.")
+            WLOG("DirectoryIterator", this, "Failed to get the metadata of "
+                 << entry.path() << ": this file is ignored")
         }
     }
 }

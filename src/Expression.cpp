@@ -17,6 +17,8 @@ Expression::Expression(const std::string& expr,
                        const std::vector<file::Collection*>& colls)
 : DiskBacked(expr, storing, colls, EXPRESSIONS_DIRNAME)
 {
+    DLOG("Expression", this, "Instanciation for expr \"" << expr << "\"")
+
     /* build sxeval */
     _handler =
         [&](const std::string& name) -> expr_t& {
@@ -28,6 +30,8 @@ Expression::Expression(const std::string& expr,
 }
 
 expr_t Expression::getValue(const file::File* file) {
+    DLOG("Expression", this, "Getting value for File " << file)
+
     /* fill the variables */
     for (auto& var : _vars) {
         var.ref = var.var->get(file);

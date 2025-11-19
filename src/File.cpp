@@ -12,7 +12,8 @@ bool File::pCompare::operator()(const File* a, const File* b) const {
 File::File(fileId_t id, IFileHelper* helper)
 : _id(id), _filteredOut(false), _helper(helper)
 {
-
+    DLOG("File", this, "Instanciation for id " << id << " and IFileHelper "
+         << helper)
 }
 
 bool File::operator==(const File& other) const {
@@ -33,6 +34,9 @@ struct stat File::getStats() const {
 
 std::ostream& File::getMetadata(std::ostream& os, expression::Type type,
                                 const std::string& key) const {
+    DLOG("File", this, "Receive request for metadata of type " << type
+         << " and key \"" << key << "\"")
+
     const auto data = _helper->read(_id);
 
     switch (type) {
@@ -97,7 +101,9 @@ std::ostream& File::getMetadata(std::ostream& os, expression::Type type,
             }
             break;
         case expression::UNKOWN:
-            throw std::runtime_error("Bad Metadata's type");
+            const auto msg("Bad Metadata's type");
+            ELOG("File", this, msg)
+            throw std::runtime_error(msg);
     }
 
     return os;

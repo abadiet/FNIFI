@@ -8,7 +8,7 @@
 #include <chrono>
 #include <format>
 
-#define UNUSED(x) (void)x
+#define UNUSED(x) (void)x;
 #define TODO throw std::runtime_error("Not yet implemented");
 
 #ifdef FNIFI_DEBUG
@@ -17,15 +17,19 @@
         << std::format("{:%Y-%m-%d %H:%M:%S}",                                \
                        std::chrono::system_clock::now())                      \
         << "] "
-#define DLOG(x) LOG << "[DEBUG] " << x << std::endl;
-#define ILOG(x) LOG << "[INFO]  " << x << std::endl;
-#define WLOG(x) LOG << "[WARN]  " << x << std::endl;
-#define ELOG(x) LOG << "[ERROR] " << x << std::endl;
+#define DLOG(obj, id, x) LOG << "[DEBUG] " << "[" << obj << " " << id << "] " \
+    << x << std::endl;
+#define ILOG(obj, id, x) LOG << "[INFO]  " << "[" << obj << " " << id << "] " \
+    << x << std::endl;
+#define WLOG(obj, id, x) LOG << "[WARN]  " << "[" << obj << " " << id << "] " \
+    << x << std::endl;
+#define ELOG(obj, id, x) LOG << "[ERROR] " << "[" << obj << " " << id << "] " \
+    << x << std::endl;
 #else  /* FNIFI_DEBUG */
-#define DLOG(x)
-#define ILOG(x)
-#define WLOG(x)
-#define ELOG(x)
+#define DLOG(obj, id, x)
+#define ILOG(obj, id, x)
+#define WLOG(obj, id, x)
+#define ELOG(obj, id, x)
 #endif  /* FNIFI_DEBUG */
 
 #define S_TO_NS(x) (x * 1000000000)

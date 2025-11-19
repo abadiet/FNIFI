@@ -23,6 +23,8 @@ Collection::Collection(connection::IConnection* indexingConn,
     _filepaths(_storing.open(_storingPath / FILEPATHS_FILE)),
     _info(_storing.open(_storingPath / INFO_FILE))
 {
+    DLOG("Collection", this, "Instanciation for IConnection " << indexingConn)
+
     /* setup _files and _availableIds */
     MapNode node;
     fileId_t id = 0;
@@ -34,9 +36,10 @@ Collection::Collection(connection::IConnection* indexingConn,
         }
         id++;
     }
-    DLOG("Collection " << this << " found " << _files.size()
-         << " files and " << _availableIds.size()
-         << " available ids at initialisation")
+
+    ILOG("Collection", this, "Found " << _files.size() << " files and "
+         << _availableIds.size() << " available ids at initialisation")
+
     if (!_mapping.eof() && _mapping.fail()) {
         throw std::runtime_error("Error reading " +
                                  _mapping.getPath().string());
@@ -61,7 +64,7 @@ void Collection::index(
     std::unordered_set<const file::File*>& added,
     std::unordered_set<file::File*>& modified)
 {
-    DLOG("Collection " << this << " is indexing")
+    DLOG("Collection", this, "Indexation")
 
     _mapping.pull();
     _filepaths.pull();
@@ -76,6 +79,10 @@ void Collection::index(
         utils::Deserialize(_info, info);
     }
 
+    DLOG("Collection", this, "The most recent file already indexed has been "
+         "created at " << S_TO_NS(info.lastIndexing.tv_sec) +
+         info.lastIndexing.tv_nsec << "ns")
+
     /* unindex removed files and detect the ones that changed */
     for (auto it = _files.begin(); it != _files.end();) {
         const auto path = it->second.getPath();
@@ -85,8 +92,8 @@ void Collection::index(
             /* the file has been remove */
             const auto id = it->second.getId();
 
-            DLOG("Collection " << this << " realized that file \"" << path
-                 << "\" has been remove")
+            ILOG("Collection", this, "File at \"" << path << "\" has been "
+                 "removed")
 
             /* remove from _mapping */
             _mapping.seekg(id * sizeof(MapNode));
@@ -107,6 +114,10 @@ void Collection::index(
             it = _files.erase(it);
         } else {
             if (it->second.getStats().st_mtimespec > info.lastIndexing) {
+
+                ILOG("Collection", this, "File at \"" << path << "\" has been "
+                     "modified")
+
                 /* the file has changed */
                 modified.insert(&it->second);
             }
@@ -119,7 +130,7 @@ void Collection::index(
     struct timespec mostRecentTime = info.lastIndexing;
     for (const auto& entry : _indexingConn->iterate("")) {
         if (entry.ctime > info.lastIndexing) {
-            DLOG("Collection " << this << " found new file " << entry.path)
+            ILOG("Collection", this, "New file " << entry.path)
             /* TODO: check if the file is not already indexed (happens
              * when removed and then added */
 
@@ -136,6 +147,10 @@ void Collection::index(
                 /* use an unused id instead of a newer one */
                 const auto pos = _availableIds.begin();
                 id = *pos;
+
+                DLOG("Collection", this, "Recycle id " << id << " for the new "
+                     "file " << entry.path)
+
                 _mapping.seekp(id * sizeof(MapNode));
                 _availableIds.erase(pos);
             } else {
@@ -161,13 +176,17 @@ void Collection::index(
     _info.seekg(0);
     utils::Serialize(_info, info);
 
+    DLOG("Collection", this, "The most recent file already indexed is now "
+         "created at " << S_TO_NS(info.lastIndexing.tv_sec) +
+         info.lastIndexing.tv_nsec << "ns")
+
     _mapping.push();
     _filepaths.push();
     _info.push();
 }
 
 void Collection::defragment() {
-    DLOG("Collection " << this << " is defragmenting")
+    DLOG("Collection", this, "Defragmentation")
 
     _mapping.pull();
     _filepaths.pull();
@@ -200,8 +219,8 @@ void Collection::defragment() {
         /* update _filepaths */
         _filepaths.take(file);
     }
-    DLOG("Collection " << this << " found " << chunks.size()
-         << " chunks to remove")
+
+    DLOG("Collection", this, "Found " << chunks.size() << " chunks to remove")
 
     /* adjust offsets */
     {
@@ -225,8 +244,10 @@ void Collection::defragment() {
             prevTellp = _mapping.tellp();
         }
         if (!_mapping.eof() && _mapping.fail()) {
-            throw std::runtime_error("Error reading " +
-                                     _mapping.getPath().string());
+            std::ostringstream msg;
+            msg << "Error while reading " << _mapping.getPath().string();
+            ELOG("Collection", this, msg.str())
+            throw std::runtime_error(msg.str());
         }
         _mapping.clear();
     }
@@ -243,8 +264,9 @@ std::string Collection::getFilePath(fileId_t id) {
 
     if (node.lenght == 0) {
         std::ostringstream msg;
-        msg << "File with id " << id << " no longer exists";
-        ELOG(msg.str())
+        msg << "Cannot get filepath for the file with id " << id << " as it no"
+            " longer exists";
+        ELOG("Collection", this, msg.str())
         throw std::runtime_error(msg.str());
     }
 
@@ -297,5 +319,5 @@ std::string Collection::getName() const {
 
 std::string Collection::getPreviewFilePath(fileId_t id) const {
     TODO
-    UNUSED(id);
+    UNUSED(id)
 }
