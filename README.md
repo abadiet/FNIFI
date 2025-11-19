@@ -15,7 +15,7 @@
 - Handle multiple sources at the same time
 
 ## Class Diagram
-<img src="https://raw.githubusercontent.com/abadiet/FNIFI/refs/heads/main/resources/architecture.png?raw=true" style="max-width: 100%;">
+<img src="https://raw.githubusercontent.com/abadiet/FNIFI/refs/heads/main/resources/architecture.svg?raw=true" style="max-width: 100%;">
 
 ## Dependencies
 - [SXEval](https://github.com/abadiet/SXEval): S-expression interpreter (includded as a submodule)
