@@ -69,7 +69,8 @@ DirectoryIterator::DirectoryIterator(const DirectoryIterator& dirit,
          "path " << path)
 
     for (auto& entry : dirit._entries) {
-        const auto name = std::filesystem::proximate(entry.path, path)
+        /* TODO: std::fs::relative is a pretty slow function */
+        const auto name = std::filesystem::relative(entry.path, path)
             .string();
         _entries.insert({name, entry.ctime});
     }

@@ -65,6 +65,8 @@ void SMB::connect() {
         ELOG("SMB", this, msg)
         throw std::runtime_error(msg);
     }
+
+    /* check if connected */
 }
 
 void SMB::disconnect(bool aggresive) {
@@ -107,14 +109,15 @@ bool SMB::exists(const std::filesystem::path& filepath) {
 struct stat SMB::getStats(const std::filesystem::path& filepath) {
     DLOG("SMB", this, "Get statistics for " << filepath)
 
-    struct stat filestat;
+    struct stat fileStat;
     const auto path = _path + filepath.string();
-    if (smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &filestat) != 0) {
+    if (smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &fileStat) != 0) {
         WLOG("SMB", this, "Failed to get the stat of " << path
              << ": will return the default instanciated stat. From errno: "
              << strerror(errno))
+        fileStat.st_size = 0;
     }
-    return filestat;
+    return fileStat;
 }
 
 fileBuf_t SMB::read(const std::filesystem::path& filepath) {
@@ -213,16 +216,23 @@ void SMB::remove(const std::filesystem::path& filepath) {
 
     const auto path = _path + filepath.string();
     if (smbc_getFunctionUnlink(_ctx)(_ctx, path.c_str()) != 0) {
-        WLOG("SMB", this, "Failed to remove " << path)
+        WLOG("SMB", this, "Failed to remove " << path << ". From errno: "
+             << strerror(errno))
     }
 }
 
 void SMB::createDirs(const std::filesystem::path& path) {
     DLOG("SMB", this, "Create directories for path " << path)
 
-    const auto dirpath = _path + path.string();
-    if (smbc_getFunctionMkdir(_ctx)(_ctx, dirpath.c_str(), 0) != 0) {
-        WLOG("SMB", this, "Failed to create directories " << path)
+    std::filesystem::path dirs;
+    for (const auto& dir : path) {
+        dirs /= dir;
+        const auto dirpath = _path + dirs.string();
+        /* TODO: check if dir exists to avoid a useless warning */
+        if (smbc_getFunctionMkdir(_ctx)(_ctx, dirpath.c_str(), 0) != 0) {
+            WLOG("SMB", this, "Failed to create directories " << path
+                 << ". From errno: " << strerror(errno))
+        }
     }
 }
 

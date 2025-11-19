@@ -41,6 +41,7 @@ struct stat Local::getStats(const std::filesystem::path& filepath) {
     DLOG("Local", this, "Get statistics for " << filepath)
 
     struct stat fileStat;
+    fileStat.st_size = 0;
     if (lstat(filepath.c_str(), &fileStat) != 0) {
         std::ostringstream msg;
         msg << "Failed to get stats for '" << filepath << "'";
@@ -91,12 +92,16 @@ void Local::download(const std::filesystem::path& from,
 void Local::upload(const std::filesystem::path& from,
                    const std::filesystem::path& to)
 {
+    DLOG("Local", this, "Upload from " << from << " to " << to)
+
     std::filesystem::copy(from, to,
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
 }
 
 void Local::remove(const std::filesystem::path& filepath) {
+    DLOG("Local", this, "Remove file " << filepath)
+
     if (std::remove(filepath.c_str()) != 0) {
         std::ostringstream msg;
         msg << "File '" << filepath << "' cannot be remove";
@@ -105,6 +110,8 @@ void Local::remove(const std::filesystem::path& filepath) {
 }
 
 void Local::createDirs(const std::filesystem::path& path) {
+    DLOG("Local", this, "Create directories for path " << path)
+
     std::filesystem::create_directories(path);
 }
 

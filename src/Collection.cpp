@@ -86,9 +86,10 @@ void Collection::index(
     /* unindex removed files and detect the ones that changed */
     for (auto it = _files.begin(); it != _files.end();) {
         const auto path = it->second.getPath();
-        /* TODO optimization: look for stat, if none, deduced the file does
-         * not exists */
-        if (!_indexingConn->exists(path)) {
+        /* optimization: look for stat, if none, deduced the file does
+         * not exists (avoid an additional call to IConnection::exists */
+        const auto fileStat = it->second.getStats();
+        if (fileStat.st_size == 0) {
             /* the file has been remove */
             const auto id = it->second.getId();
 
@@ -113,7 +114,7 @@ void Collection::index(
             removed.insert({&it->second, id});
             it = _files.erase(it);
         } else {
-            if (it->second.getStats().st_mtimespec > info.lastIndexing) {
+            if (fileStat.st_mtimespec > info.lastIndexing) {
 
                 ILOG("Collection", this, "File at \"" << path << "\" has been "
                      "modified")
