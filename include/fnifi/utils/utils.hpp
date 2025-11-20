@@ -57,6 +57,7 @@ std::istream& Deserialize(std::istream& is, T& var);
 template <typename T>
 std::istream& Deserialize(std::istream& is, std::vector<T>& var);
 
+uint32_t fnv1a(const std::string& s);
 std::string Hash(const std::string& s);
 
 }  /* namespace utils */
@@ -107,11 +108,23 @@ inline bool fnifi::operator>(const timespec& lhs, const timespec& rhs) {
     return lhs.tv_sec > rhs.tv_sec;
 }
 
+inline uint32_t fnifi::utils::fnv1a(const std::string& s) {
+    const uint32_t FNV_PRIME = 16777619;
+    const uint32_t FNV_OFFSET = 2166136261;
+    uint32_t hash = FNV_OFFSET;
+    for (char c : s) {
+        hash ^= static_cast<uint8_t>(c);
+        hash *= FNV_PRIME;
+    }
+    return hash;
+}
+
 inline std::string fnifi::utils::Hash(const std::string& s) {
     auto res = s;
     for (char c : "/\\:*?\"<>|") {
         std::replace(res.begin(), res.end(), c, '_');
     }
+    res += "_" + std::to_string(fnv1a(s));
     return res;
 }
 

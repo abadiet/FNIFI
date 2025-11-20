@@ -54,6 +54,10 @@ int main(int argc, char** argv) {
         std::cout << file->getPath() << std::endl;
     }
 
+    fi.sort("(+ ctime 0)");
+
+    fi.filter("(> ctime 2345678987)");
+
     /* Cleaning */
     connection.disconnect();
     indexingSer.disconnect();

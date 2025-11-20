@@ -35,6 +35,13 @@ Variable::Variable(const std::string& key,
         _type = Variable::GetType(key.substr(pos));
         _name = key.substr(pos + 1);
     }
+
+    if (_type == UNKOWN) {
+        std::ostringstream msg;
+        msg << "Invalid key \"" << key << "\"";
+        ELOG("Variable", this, msg.str())
+        throw std::runtime_error(msg.str());
+    }
 }
 
 expr_t Variable::getValue(const file::File* file) {
