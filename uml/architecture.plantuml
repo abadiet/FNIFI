@@ -50,17 +50,33 @@ package fnifi {
 
         class SyncDirector::FileStream <<std::fstreamd>> {
             -_sync : const SyncDirectory&
-            -FileStream(filepath : const std::filesystem::path&, ate : bool,
-            sync : const SyncDirectory&)
+            -_abspath : const std::filesystem::path&
+            -_relapath : const std::filesystem::path&
+            -_syncDisabled : bool
+            -setup(ate : bool)
+            -FileStream(abspath : const std::filesystem::path&,
+            relapath : const std::filesystem::path&, ate : bool, sync : const SyncDirectory&)
+            +FileStream(sync : const SyncDirectory&, filepath : const std::filesystem::path&,
+            ate : bool := false)
             +pull()
             +push()
+            +disableSync(pull : bool := true)
+            +enableSync(push : bool := true)
+            +take(file : TempFile&)
+            +getPath(relative : bool := false) : std::filesystem::path
         }
 
         class SyncDirectory {
             -_conn : const IConnection*
             -_path : const std::filesystem::path
+            -setupFileStream(filepath : const std::filesystem::path&,
+            mkdir : bool := true) : std::filesystemm::path
+            -pull(abspath : const std::filesystem::path&,
+            relapath : const std::filesystem::path&) : bool
+            -push(relapath : const std::filesystem::path&, buf : const fileBuf_t&)
             +SyncDirectory(conn : const IConnection*, path : const std::filesystem::path&)
-            +open(filepath : const std::filesystem::path&, ate : bool) : FileStream
+            +open(filepath : const std::filesystem::path&, ate : bool := false,
+            mkdir : bool := true) : FileStream
         }
     }
 
@@ -74,7 +90,8 @@ package fnifi {
             colls : std::vector<file::Collection*>&, parentDirName : const std::string&)
             +~DiskBacked()
             +get(file : const file::File*, noCache : bool := false) : expr_t
-            +update()
+            +disableSync(collName : const std::filesystem::path&, pull : bool := true)
+            +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
 
         class Expression extends DiskBacked {
@@ -85,6 +102,8 @@ package fnifi {
             +{static} Uncache(storing : const utils::SyncDirectory&,
             +Expression(expr : const std::string&, storing : const utils::SyncDirectory&,
             colls : const std::vector<file::Collection*>&)
+            +disableSync(collName : const std::filesystem::path&, pull : bool := true)
+            +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
 
         class Variable extends DiskBacked {
@@ -95,6 +114,8 @@ package fnifi {
             +{static} Uncache(storing : const utils::SyncDirectory&,
             +Variable(key : const std::string&, storing : const utils::SyncDirectory&,
             colls : const std::vector<file::Collection*>&)
+            +disableSync(collName : const std::filesystem::path&, pull : bool := true)
+            +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
 
         enum Type {
@@ -105,12 +126,21 @@ package fnifi {
             +UNKNOWN
         }
 
+        Variable *--> Type : 1..1\n_type
+
     }
 
     package file {
+        enum Type {
+            +JPEG,
+            +PNG,
+            +UNKNOWN
+        }
+
         interface IFileHelper {
             +getFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
+            +getType(id : fileId_t) : Type
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +getName() : std::string
@@ -126,6 +156,7 @@ package fnifi {
             +getId() : fileId_t
             +getPath() : std::string
             +getStats() : struct stat
+            +getType() : Type
             +getMetadata(os : std::ostream&, type : expression::Type,
             key : const std::string&) : std::ostream&
             +preview() : fileBuf_t
@@ -144,6 +175,8 @@ package fnifi {
             -_mapping : utils::SyncDirectory::FileStream
             -_filepaths : utils::SyncDirectory::FileStream
             -_availableIds : std::unordered_set<filedId_t>
+            -_previewsMkdir : bool
+            -{static} GetType(buf : const fileBuf_t&) : Type
             +Collection(indexingConn : IConnection*, storing : const utils::SyncDirectory&)
             +~Collection()
             +index(removed : std::unordered_set<std::pair<const file::File*, fileId_t>&,
@@ -152,6 +185,7 @@ package fnifi {
             +defragment()
             +getFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
+            +getType(id : fileId_t) : Type
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +getName() : std::string
@@ -196,8 +230,8 @@ package fnifi {
             +getStats(filepath : std::filesystem::path&) : struct stat
             +read(filepath : std::filesystem::path&) : fileBuf_t
             +write(filepath : std::filesystem::path&, buffer : const fileBuf_t&)
-            +download(from : std::filesystem::path&, to : std::filesystem::path&)
-            +upload(from : std::filesystem::path&, to : std::filesystem::path&)
+            +download(from : std::filesystem::path&, to : std::filesystem::path&) : bool
+            +upload(from : std::filesystem::path&, to : std::filesystem::path&) : bool
             +remove(filepath : std::filesystem::path&)
             +createDirs(path : const std::filesystem::path&)
             +getName() : std::string
@@ -215,8 +249,8 @@ package fnifi {
             +getStats(filepath : std::filesystem::path&) : struct stat
             +read(filepath : std::filesystem::path&) : fileBuf_t
             +write(filepath : std::filesystem::path&, buffer : const fileBuf_t&)
-            +download(from : std::filesystem::path&, to : std::filesystem::path&)
-            +upload(from : std::filesystem::path&, to : std::filesystem::path&)
+            +download(from : std::filesystem::path&, to : std::filesystem::path&) : bool
+            +upload(from : std::filesystem::path&, to : std::filesystem::path&) : bool
             +remove(filepath : std::filesystem::path&)
             +createDirs(path : const std::filesystem::path&)
             +getName() : std::string
@@ -236,8 +270,8 @@ package fnifi {
             +getStats(filepath : std::filesystem::path&) : struct stat
             +read(filepath : std::filesystem::path&) : fileBuf_t
             +write(filepath : std::filesystem::path&, buffer : const fileBuf_t&)
-            +download(from : std::filesystem::path&, to : std::filesystem::path&)
-            +upload(from : std::filesystem::path&, to : std::filesystem::path&)
+            +download(from : std::filesystem::path&, to : std::filesystem::path&) : bool
+            +upload(from : std::filesystem::path&, to : std::filesystem::path&) : bool
             +remove(filepath : std::filesystem::path&)
             +createDirs(path : const std::filesystem::path&)
             +getName() : std::string
@@ -253,8 +287,8 @@ package fnifi {
             +getStats(filepath : std::filesystem::path&) : struct stat
             +read(filepath : std::filesystem::path&) : fileBuf_t
             +write(filepath : std::filesystem::path&, buffer : const fileBuf_t&)
-            +download(from : std::filesystem::path&, to : std::filesystem::path&)
-            +upload(from : std::filesystem::path&, to : std::filesystem::path&)
+            +download(from : std::filesystem::path&, to : std::filesystem::path&) : bool
+            +upload(from : std::filesystem::path&, to : std::filesystem::path&) : bool
             +remove(filepath : std::filesystem::path&)
             +createDirs(path : const std::filesystem::path&)
             +getName() : std::string
@@ -305,7 +339,6 @@ Collection *--> SyncDirectory::FileStream : 0..*\n_filepaths
 Relative o--> IConnection : 1..1\n_conn
 DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 Expression *--> Variable : 0..*\n_vars
-Variable *--> Type : 1..1\n_type
 DiskBacked *--> SyncDirectory::FileStream : 0..*\n_storedColls
 
 @enduml
