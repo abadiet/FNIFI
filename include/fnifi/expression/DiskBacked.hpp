@@ -31,7 +31,6 @@ private:
     struct StoredColl {
         std::unique_ptr<utils::SyncDirectory::FileStream> file;
         fileId_t maxId;
-        std::filesystem::path path;
     };
 
     virtual expr_t getValue(const file::File* file) = 0;

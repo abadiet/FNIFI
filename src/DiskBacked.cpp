@@ -1,8 +1,6 @@
 #include "fnifi/expression/DiskBacked.hpp"
 #include <csignal>
 
-#define RESULTS_FILENAME "results.fnifi"
-
 
 using namespace fnifi;
 using namespace fnifi::expression;
@@ -16,9 +14,8 @@ void DiskBacked::Uncache(const utils::SyncDirectory& storing,
     if (std::filesystem::exists(path)) {
         for (const auto& dir : std::filesystem::directory_iterator(path)) {
             if (dir.is_directory()) {
-                    /* write an empty results on the id position */
-                auto file = storing.open(path / dir.path().filename() /
-                                         RESULTS_FILENAME);
+                /* write an empty results on the id position */
+                auto file = storing.open(path / dir.path().filename());
                 file.seekp(id * sizeof(expr_t));
                 utils::Serialize(file, EMPTY_EXPR_T);
                 file.push();
@@ -38,8 +35,7 @@ DiskBacked::DiskBacked(const std::string& key,
     for (const auto& coll : colls) {
         /* create or open the results.fnifi file */
         const auto name = coll->getName();
-        const auto dir = utils::Hash(name) / parentDirName / utils::Hash(key);
-        const auto filename = dir / RESULTS_FILENAME;
+        const auto filename = utils::Hash(name) / parentDirName / utils::Hash(key);
         bool ate = false;
         if (storing.exists(filename)) {
             ate = true;
@@ -52,8 +48,7 @@ DiskBacked::DiskBacked(const std::string& key,
             std::forward_as_tuple(
                 std::make_unique<utils::SyncDirectory::FileStream>(
                     storing, filename, ate),
-                0,
-                dir
+                0
             )
         );
 

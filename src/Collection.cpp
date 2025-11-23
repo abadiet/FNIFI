@@ -9,6 +9,7 @@
 #define INFO_FILE "info.fnifi"
 #define MAPPING_FILE "mapping.fnifi"
 #define FILEPATHS_FILE "filepaths.fnifi"
+#define PREVIEW_DIRNAME "previews"
 #define FILEPATH_EMPTY_CHAR '?'
 
 
@@ -290,8 +291,13 @@ fileBuf_t Collection::read(fileId_t id) {
 }
 
 fileBuf_t Collection::preview(fileId_t id) {
-    const auto filepath = getPreviewFilePath(id);
+    /*
+    const auto filepath = std::filesystem::path(PREVIEW_DIRNAME / id / PREVIEW
     return _indexingConn->read(filepath);
+                                                */
+    UNUSED(id)
+    UNUSED(PREVIEW_DIRNAME)
+    return {};
 }
 
 std::unordered_map<fileId_t, File>::const_iterator Collection::begin() const {
