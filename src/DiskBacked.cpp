@@ -118,7 +118,7 @@ expr_t DiskBacked::get(const file::File* file) {
         stored->second.maxId = id;
     }
 
-    DLOG("DiskBacked ", this, "Results for File " << file << " was not cached")
+    DLOG("DiskBacked", this, "Results for File " << file << " was not cached")
 
     const auto res = getValue(file);
     stored->second.file->seekp(std::streamoff(pos));
@@ -127,4 +127,26 @@ expr_t DiskBacked::get(const file::File* file) {
     stored->second.file->push();
 
     return res;
+}
+
+void DiskBacked::disableSync(const std::string& collName, bool pull) {
+    const auto stored = _storedColls.find(collName);
+    if (stored == _storedColls.end()) {
+        ELOG("DiskBacked", this, "Lock called on a file that belongs to an "
+             "unknown Collection (" << collName << ") Aborting the call.")
+        return;
+    }
+
+    stored->second.file->disableSync(pull);
+}
+
+void DiskBacked::enableSync(const std::string& collName, bool push) {
+    const auto stored = _storedColls.find(collName);
+    if (stored == _storedColls.end()) {
+        ELOG("DiskBacked", this, "Unlock called on a file that belongs to an "
+            "unknown Collection (" << collName << ") Aborting the call.")
+        return;
+    }
+
+    stored->second.file->enableSync(push);
 }

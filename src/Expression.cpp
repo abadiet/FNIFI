@@ -40,3 +40,19 @@ expr_t Expression::getValue(const file::File* file) {
     /* run sxeval */
     return _sxeval.execute();
 }
+
+void Expression::disableSync(const std::string& collName, bool pull) {
+    DiskBacked::disableSync(collName, pull);
+
+    for (auto& var : _vars) {
+        var.var->disableSync(collName, pull);
+    }
+}
+
+void Expression::enableSync(const std::string& collName, bool push) {
+    DiskBacked::enableSync(collName, push);
+
+    for (auto& var : _vars) {
+        var.var->enableSync(collName, push);
+    }
+}

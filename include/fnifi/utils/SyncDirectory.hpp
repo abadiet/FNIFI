@@ -19,6 +19,8 @@ public:
         virtual ~FileStream() override;
         bool pull();
         void push();
+        void disableSync(bool pull = true);
+        void enableSync(bool push = true);
         void take(TempFile& file);
         std::filesystem::path getPath(bool relative = false) const;
 
@@ -31,6 +33,7 @@ public:
         const SyncDirectory& _sync;
         const std::filesystem::path _abspath;
         const std::filesystem::path _relapath;
+        bool _syncDisabled;
 
         friend SyncDirectory;
     };

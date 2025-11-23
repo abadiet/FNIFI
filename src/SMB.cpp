@@ -326,3 +326,19 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
 
     return entry;
 }
+
+/*
+    const smbc_notify_callback_fn cb = [](
+        const smbc_notify_callback_action* actions, size_t nActions, void* data
+    ) -> int
+    {
+        for (size_t i = 0; i < nActions; ++i) {
+            const auto action = actions[i];
+            if (action.action == SMBC_NOTIFY_ACTION_REMOVED &&
+                action.filename == ) {
+    };
+
+    smbc_getFunctionNotify(_ctx)(_ctx, dir, false,
+                                 SMBC_NOTIFY_CHANGE_FILE_NAME, 0, &cb, nullptr
+                                 );
+*/

@@ -165,11 +165,18 @@ void FNIFI::sort(const std::string& expr) {
     _sortExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
+        /* disable synchronization during the process to avoid too many calls
+         */
+        const auto collName = coll->getName();
+        _sortExpr->disableSync(collName);
+
         for (auto& file : *coll) {
             const auto score = _sortExpr->get(&file.second);
             file.second.setSortingScore(score);
             _files.insert(&file.second);
         }
+
+        _sortExpr->enableSync(collName);
     }
 }
 
@@ -179,10 +186,17 @@ void FNIFI::filter(const std::string& expr) {
     _filtExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
+        /* disable synchronization during the process to avoid too many calls
+         */
+        const auto collName = coll->getName();
+        _filtExpr->disableSync(collName);
+
         for (auto& file : *coll) {
             const auto check = (_filtExpr->get(&file.second) == 0);
             file.second.setIsFilteredOut(check);
         }
+
+        _filtExpr->enableSync(collName);
     }
 }
 

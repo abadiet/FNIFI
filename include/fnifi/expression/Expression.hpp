@@ -23,6 +23,8 @@ public:
     Expression(const std::string& expr,
                const utils::SyncDirectory& storing,
                const std::vector<file::Collection*>& colls);
+    void disableSync(const std::string& collName, bool pull = true) override;
+    void enableSync(const std::string& collName, bool push = true) override;
 
 private:
     struct RefVar {

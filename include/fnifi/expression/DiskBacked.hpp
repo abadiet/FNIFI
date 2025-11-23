@@ -24,6 +24,8 @@ public:
                const std::filesystem::path& parentDirName);
     virtual ~DiskBacked();
     expr_t get(const file::File* file);
+    virtual void disableSync(const std::string& collName, bool pull = true);
+    virtual void enableSync(const std::string& collName, bool push = true);
 
 private:
     struct StoredColl {

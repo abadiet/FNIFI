@@ -7,7 +7,8 @@ using namespace fnifi::utils;
 SyncDirectory::FileStream::FileStream(const SyncDirectory& sync,
                                       const std::filesystem::path& filepath,
                                       bool ate)
-: _sync(sync), _abspath(sync.setupFileStream(filepath)), _relapath(filepath)
+: _sync(sync), _abspath(sync.setupFileStream(filepath)), _relapath(filepath),
+    _syncDisabled(false)
 {
     setup(ate);
 }
@@ -19,31 +20,56 @@ SyncDirectory::FileStream::~FileStream() {
 }
 
 bool SyncDirectory::FileStream::pull() {
-    DLOG("FileStream", this, "Pull")
+    if (!_syncDisabled) {
+        DLOG("FileStream", this, "Pull")
 
-    close();
+        close();
 
-    const auto hasChanged = _sync.pull(_abspath, _relapath);
+        const auto hasChanged = _sync.pull(_abspath, _relapath);
 
-    open(_abspath, std::ios::in | std::ios::out | std::ios::binary);
+        open(_abspath, std::ios::in | std::ios::out | std::ios::binary);
 
-    return hasChanged;
+        return hasChanged;
+    }
+    return false;
 }
 
 void SyncDirectory::FileStream::push() {
-    DLOG("FileStream", this, "Push")
+    if (!_syncDisabled) {
+        DLOG("FileStream", this, "Push")
 
-    flush();
+        flush();
 
-    /* fill the buffer */
-    seekg(0, std::ios::end);
-    const auto len = tellg();
-    if (len > 0) {
-        fileBuf_t buf(static_cast<size_t>(len), '\0');
-        seekg(0);
-        read(reinterpret_cast<char*>(&buf[0]), len);
+        /* fill the buffer */
+        seekg(0, std::ios::end);
+        const auto len = tellg();
+        if (len > 0) {
+            fileBuf_t buf(static_cast<size_t>(len), '\0');
+            seekg(0);
+            read(reinterpret_cast<char*>(&buf[0]), len);
 
-        _sync.push(_relapath, buf);
+            _sync.push(_relapath, buf);
+        }
+    }
+}
+
+void SyncDirectory::FileStream::disableSync(bool pull) {
+    DLOG("FileStream", this, "Disable synchronization")
+
+    _syncDisabled = true;
+
+    if (pull) {
+        this->pull();
+    }
+}
+
+void SyncDirectory::FileStream::enableSync(bool push) {
+    DLOG("FileStream", this, "Enable synchronization")
+
+    _syncDisabled = false;
+
+    if (push) {
+        this->push();
     }
 }
 
@@ -64,7 +90,7 @@ std::filesystem::path SyncDirectory::FileStream::getPath(bool relative) const {
 SyncDirectory::FileStream::FileStream(const std::filesystem::path& abspath,
                                       const std::filesystem::path& relapath,
                                       bool ate, const SyncDirectory& sync)
-: _sync(sync), _abspath(abspath), _relapath(relapath)
+: _sync(sync), _abspath(abspath), _relapath(relapath), _syncDisabled(false)
 {
     setup(ate);
 }
