@@ -181,34 +181,46 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
     }
 }
 
-void SMB::download(const std::filesystem::path& from,
+bool SMB::download(const std::filesystem::path& from,
                    const std::filesystem::path& to)
 {
     DLOG("SMB", this, "Download from " << from << " to " << to)
 
     const auto content = read(from);
+    if (content.size() == 0) {
+        return false;
+    }
+
     std::ofstream file(to, std::ios::trunc);
     if (!file.is_open()) {
         WLOG("SMB", this, "Failed to open " << to)
-        return;
+        return false;
     }
     file.write(reinterpret_cast<const char*>(content.data()),
                std::streamsize(content.size()));
     file.close();
+
+    return true;
 }
 
-void SMB::upload(const std::filesystem::path& from,
+bool SMB::upload(const std::filesystem::path& from,
                  const std::filesystem::path& to)
 {
     DLOG("SMB", this, "Upload from " << from << " to " << to)
 
     std::ifstream file(from, std::ios::ate);
+    if (!file.is_open()) {
+        return false;
+    }
+
     const auto len = file.tellg();
     fileBuf_t buf(static_cast<size_t>(len), '\0');
     file.seekg(0);
     file.read(reinterpret_cast<char*>(&buf[0]), len);
     write(to, buf);
     file.close();
+
+    return true;
 }
 
 void SMB::remove(const std::filesystem::path& filepath) {

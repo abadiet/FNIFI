@@ -126,23 +126,26 @@ SyncDirectory::SyncDirectory(connection::IConnection* conn,
 }
 
 SyncDirectory::FileStream SyncDirectory::open(
-    const std::filesystem::path& filepath, bool ate) const
+    const std::filesystem::path& filepath, bool ate, bool mkdir) const
 {
-    const auto abspath = setupFileStream(filepath);
+    const auto abspath = setupFileStream(filepath, mkdir);
 
     return FileStream(abspath, filepath, ate, *this);
 }
 
 std::filesystem::path SyncDirectory::setupFileStream(
-    const std::filesystem::path& filepath) const
+    const std::filesystem::path& filepath, bool mkdir) const
 {
     DLOG("SyncDirectory", this, "Setup directories and file for a FileStream "
          "instance")
 
-    /* create the directories if needed */
     const auto abspath = _path / filepath;
-    std::filesystem::create_directories(abspath.parent_path());
-    _conn->createDirs(filepath.parent_path());
+
+    if (mkdir) {
+        /* create the directories if needed */
+        std::filesystem::create_directories(abspath.parent_path());
+        _conn->createDirs(filepath.parent_path());
+    }
 
     pull(abspath, filepath);
 
@@ -156,11 +159,7 @@ bool SyncDirectory::exists(const std::filesystem::path& filepath) const {
 bool SyncDirectory::pull(const std::filesystem::path& abspath,
                          const std::filesystem::path& relapath) const
 {
-    if (_conn->exists(relapath)) {
-        _conn->download(relapath, abspath);
-        return true;
-    }
-    return false;
+    return _conn->download(relapath, abspath);
 }
 
 void SyncDirectory::push(const std::filesystem::path& relapath,

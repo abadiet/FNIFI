@@ -5,11 +5,13 @@
 #include <sys/stat.h>
 #include <ctime>
 #include <cstdio>
+#include <opencv2/opencv.hpp>
 
 #define INFO_FILE "info.fnifi"
 #define MAPPING_FILE "mapping.fnifi"
 #define FILEPATHS_FILE "filepaths.fnifi"
 #define PREVIEW_DIRNAME "previews"
+#define DEFAULT_PREVIEW_CHAR '?'
 #define FILEPATH_EMPTY_CHAR '?'
 
 
@@ -22,7 +24,7 @@ Collection::Collection(connection::IConnection* indexingConn,
     _storingPath(utils::Hash(getName())),
     _mapping(_storing.open(_storingPath / MAPPING_FILE)),
     _filepaths(_storing.open(_storingPath / FILEPATHS_FILE)),
-    _info(_storing.open(_storingPath / INFO_FILE))
+    _info(_storing.open(_storingPath / INFO_FILE)), _previewsMkdir(true)
 {
     DLOG("Collection", this, "Instanciation for IConnection " << indexingConn)
 
@@ -285,19 +287,71 @@ struct stat Collection::getStats(fileId_t id) {
     return _indexingConn->getStats(filepath);
 }
 
+Type Collection::getType(fileId_t id) {
+    const auto content = read(id);
+    return GetType(content);
+}
+
 fileBuf_t Collection::read(fileId_t id) {
     const auto filepath = getFilePath(id);
     return _indexingConn->read(filepath);
 }
 
 fileBuf_t Collection::preview(fileId_t id) {
-    /*
-    const auto filepath = std::filesystem::path(PREVIEW_DIRNAME / id / PREVIEW
-    return _indexingConn->read(filepath);
-                                                */
-    UNUSED(id)
-    UNUSED(PREVIEW_DIRNAME)
-    return {};
+    const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);
+
+    auto file = _storing.open(filepath, true, _previewsMkdir);
+    if (_previewsMkdir) {
+        /* Optimization: assuming the dirs will not be removed during the
+         * lifetime of the program. Avoid a lot of unecessary calls to mkdir */
+        _previewsMkdir = false;
+    }
+
+    const auto sz = file.tellg();
+    if (sz == 0) {
+        /* the file did not exists and has to be created */
+        const auto original = read(id);
+
+        const auto type = GetType(original);
+        switch (type) {
+            case JPEG:
+            case PNG:
+                {
+                    const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
+                    if (img.empty()) {
+                        /* failed to decode image data */
+                        break;
+                    }
+                    cv::Mat res;
+                    cv::resize(img, res, cv::Size(128, 128));
+                    fileBuf_t buffer;
+                    cv::imencode(".jpg", res, buffer,
+                                 {cv::IMWRITE_JPEG_QUALITY, 70});
+                    file.write(reinterpret_cast<const char*>(buffer.data()),
+                               std::streamsize(buffer.size()));
+                    file.push();
+                    file.close();
+                    return buffer;
+                }
+            case UNKNOWN:
+                /* cannot handle this file type: set the default preview */
+                break;
+        }
+
+        file.put(DEFAULT_PREVIEW_CHAR);
+        file.push();
+        file.close();
+        return {};
+    }
+
+    if (sz == 1) {
+        /* cannot handle this file type */
+        return {};
+    }
+
+    const fileBuf_t buf((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+    return buf;
 }
 
 std::unordered_map<fileId_t, File>::const_iterator Collection::begin() const {
@@ -324,7 +378,14 @@ std::string Collection::getName() const {
     return _indexingConn->getName();
 }
 
-std::string Collection::getPreviewFilePath(fileId_t id) const {
-    TODO
-    UNUSED(id)
+Type Collection::GetType(const fileBuf_t& buf) {
+    if (buf.size() > 3 && buf[0] == 0xFF && buf[1] == 0xD8 && buf[2] == 0xFF) {
+        return Type::JPEG;
+    }
+    if (buf.size() > 4 && buf[0] == 0x89 && buf[1] == 0x50 && buf[2] == 0x4E &&
+        buf[3] == 0x47)
+    {
+        return Type::PNG;
+    }
+    return Type::UNKNOWN;
 }

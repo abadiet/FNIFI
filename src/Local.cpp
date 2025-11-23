@@ -79,7 +79,7 @@ void Local::write(const std::filesystem::path& filepath,
                static_cast<std::streamsize>(buffer.size()));
 }
 
-void Local::download(const std::filesystem::path& from,
+bool Local::download(const std::filesystem::path& from,
                      const std::filesystem::path& to)
 {
     DLOG("Local", this, "Download from " << from << " to " << to)
@@ -87,9 +87,11 @@ void Local::download(const std::filesystem::path& from,
     std::filesystem::copy(from, to,
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
+
+    return true;
 }
 
-void Local::upload(const std::filesystem::path& from,
+bool Local::upload(const std::filesystem::path& from,
                    const std::filesystem::path& to)
 {
     DLOG("Local", this, "Upload from " << from << " to " << to)
@@ -97,6 +99,8 @@ void Local::upload(const std::filesystem::path& from,
     std::filesystem::copy(from, to,
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
+
+    return true;
 }
 
 void Local::remove(const std::filesystem::path& filepath) {

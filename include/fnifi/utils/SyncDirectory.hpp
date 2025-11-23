@@ -40,13 +40,13 @@ public:
 
     SyncDirectory(connection::IConnection* conn,
                   const std::filesystem::path& path);
-    FileStream open(const std::filesystem::path& filepath, bool ate = false)
-        const;
+    FileStream open(const std::filesystem::path& filepath, bool ate = false,
+                    bool mkdir = true) const;
     bool exists(const std::filesystem::path& filepath) const;
 
 private:
-    std::filesystem::path setupFileStream(const std::filesystem::path& filepath
-                                          ) const;
+    std::filesystem::path setupFileStream(
+        const std::filesystem::path& filepath, bool mkdir = true) const;
     bool pull(const std::filesystem::path& abspath,
               const std::filesystem::path& relapath) const;
     void push(const std::filesystem::path& relapath, const fileBuf_t& buf)

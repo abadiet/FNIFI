@@ -1,3 +1,4 @@
+#include "fnifi/expression/Type.hpp"
 #ifndef FNIFI_FILE_COLLECTION_HPP
 #include <filesystem>
 #define FNIFI_FILE_COLLECTION_HPP
@@ -5,6 +6,7 @@
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils/SyncDirectory.hpp"
 #include "fnifi/file/File.hpp"
+#include "fnifi/file/Type.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <unordered_set>
 #include <unordered_map>
@@ -27,6 +29,7 @@ public:
     void defragment();
     std::string getFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
+    Type getType(fileId_t id) override;
     fileBuf_t preview(fileId_t id) override;
     fileBuf_t read(fileId_t id) override;
     std::string getName() const override;
@@ -47,7 +50,7 @@ private:
         struct timespec lastIndexing = {0, 0};
     };
 
-    std::string getPreviewFilePath(fileId_t id) const;
+    static Type GetType(const fileBuf_t& buf);
 
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;
@@ -57,6 +60,7 @@ private:
     utils::SyncDirectory::FileStream _filepaths;
     utils::SyncDirectory::FileStream _info;
     std::unordered_set<fileId_t> _availableIds;
+    bool _previewsMkdir;
 };
 
 }  /* namespace file */

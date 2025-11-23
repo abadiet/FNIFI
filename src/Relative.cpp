@@ -44,14 +44,14 @@ void Relative::write(const std::filesystem::path& filepath,
     return _conn->write(_path / filepath, buffer);
 }
 
-void Relative::download(const std::filesystem::path& from,
+bool Relative::download(const std::filesystem::path& from,
                         const std::filesystem::path& to) {
-    _conn->download(_path / from, to);
+    return _conn->download(_path / from, to);
 }
 
-void Relative::upload(const std::filesystem::path& from,
+bool Relative::upload(const std::filesystem::path& from,
                       const std::filesystem::path& to) {
-    _conn->upload(from, _path / to);
+    return _conn->upload(from, _path / to);
 }
 
 void Relative::remove(const std::filesystem::path& filepath) {

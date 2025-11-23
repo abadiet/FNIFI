@@ -61,10 +61,11 @@ endif()
 # Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
 find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
+find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SMBCLIENT REQUIRED IMPORTED_TARGET smbclient)
 target_link_libraries(${PROJECT_NAME} PUBLIC sxeval Exiv2::exiv2lib
-    PkgConfig::SMBCLIENT)
+    PkgConfig::SMBCLIENT ${OpenCV_LIBS})
 
 # UML
 if(BUILD_UML)
@@ -73,13 +74,14 @@ if(BUILD_UML)
     foreach(UML_FILE ${UML_SOURCES})
         message(STATUS "Adding UML file: ${UML_FILE}")
         get_filename_component(UML_NAME ${UML_FILE} NAME_WE)
-        set(UML_TMP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/uml/${UML_NAME}.png)
-        set(UML_OUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/resources/${UML_NAME}.png)
+        set(UML_TMP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/uml/${UML_NAME}.svg)
+        set(UML_OUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/resources/${UML_NAME}.svg)
         add_custom_command(
             OUTPUT ${UML_OUT_FILE}
-            COMMAND plantuml ${UML_FILE} && mv ${UML_TMP_FILE} ${UML_OUT_FILE}
+            COMMAND plantuml ${UML_FILE} --svg && mv ${UML_TMP_FILE}
+                ${UML_OUT_FILE}
             DEPENDS ${UML_FILE}
-            COMMENT "Generating UML diagram: ${UML_NAME}.png"
+            COMMENT "Generating UML diagram: ${UML_NAME}.svg"
             VERBATIM
         )
         list(APPEND UML_OUTPUTS ${UML_OUT_FILE})

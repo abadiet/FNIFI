@@ -22,9 +22,9 @@ public:
     fileBuf_t read(const std::filesystem::path& filepath) override;
     void write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
         override;
-    void download(const std::filesystem::path& from,
+    bool download(const std::filesystem::path& from,
                   const std::filesystem::path& to) override;
-    void upload(const std::filesystem::path& from,
+    bool upload(const std::filesystem::path& from,
                 const std::filesystem::path& to) override;
     void remove(const std::filesystem::path& filepath) override;
     void createDirs(const std::filesystem::path& path) override;

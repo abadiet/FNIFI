@@ -22,9 +22,9 @@ public:
     virtual fileBuf_t read(const std::filesystem::path& filepath) = 0;
     virtual void write(const std::filesystem::path& filepath,
                        const fileBuf_t& buffer) = 0;
-    virtual void download(const std::filesystem::path& from,
+    virtual bool download(const std::filesystem::path& from,
                           const std::filesystem::path& to) = 0;
-    virtual void upload(const std::filesystem::path& from,
+    virtual bool upload(const std::filesystem::path& from,
                         const std::filesystem::path& to) = 0;
     virtual void remove(const std::filesystem::path& filepath) = 0;
     virtual void createDirs(const std::filesystem::path& path) = 0;
