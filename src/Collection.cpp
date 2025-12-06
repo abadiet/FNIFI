@@ -55,14 +55,17 @@ Collection::Collection(connection::IConnection* indexingConn,
 
 Collection::Collection(Collection&& other) noexcept
     : _files(std::move(other._files)),
-      _indexingConn(other._indexingConn),
-      _storing(other._storing),
-      _storingPath(std::move(other._storingPath)),
-      _mapping(std::move(other._mapping)),
-      _filepaths(std::move(other._filepaths)),
-      _info(std::move(other._info)),
-      _availableIds(std::move(other._availableIds)),
-      _previewsMkdir(other._previewsMkdir)
+    _indexingConn(other._indexingConn),
+    _storing(other._storing),
+    _storingPath(std::move(other._storingPath)),
+    _mapping(std::make_unique<utils::SyncDirectory::FileStream>
+             (_storing, _storingPath / MAPPING_FILE)),
+    _filepaths(std::make_unique<utils::SyncDirectory::FileStream>
+               (_storing, _storingPath / FILEPATHS_FILE)),
+    _info(std::make_unique<utils::SyncDirectory::FileStream>
+          (_storing, _storingPath / INFO_FILE)),
+    _availableIds(std::move(other._availableIds)),
+    _previewsMkdir(other._previewsMkdir)
 {}
 
 Collection::~Collection() {
