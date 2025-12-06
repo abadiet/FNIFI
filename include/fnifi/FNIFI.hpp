@@ -43,8 +43,8 @@ public:
         fileset_t& _files;
     };
 
-    FNIFI(const std::vector<file::Collection*>& colls,
-          const utils::SyncDirectory& storing);
+    FNIFI(const utils::SyncDirectory& storing);
+    void addCollection(file::Collection& coll);
     void index();
     void defragment();
     void sort(const std::string& expr);
@@ -55,7 +55,10 @@ public:
     Iterator end();
 
 private:
-    const std::vector<file::Collection*> _colls;
+    void indexColl(file::Collection* coll);
+    void sortColl(file::Collection* coll);
+    void filterColl(file::Collection* coll);
+    std::vector<file::Collection*> _colls;
     std::unique_ptr<expression::Expression> _sortExpr;
     std::unique_ptr<expression::Expression> _filtExpr;
     fileset_t _files;

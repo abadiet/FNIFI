@@ -24,12 +24,12 @@ int main(int argc, char** argv) {
     /* Synchronized directory (local processing and remote saving) */
     fnifi::utils::SyncDirectory storingLocal(&storingServer, argv[1]);
 
+    /* File indexing */
+    fnifi::FNIFI fi(storingLocal);
+
     /* Collections */
     fnifi::file::Collection coll(&indexingServer, storingLocal);
-    std::vector<fnifi::file::Collection*> colls = {&coll};
-
-    /* File indexing */
-    fnifi::FNIFI fi(colls, storingLocal);
+    fi.addCollection(coll);
 
     /* Defragment to optimize disk usage */
     fi.defragment();

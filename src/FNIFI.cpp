@@ -67,24 +67,33 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
     return !(*this == other);
 }
 
-FNIFI::FNIFI(const std::vector<file::Collection*>& colls,
-             const utils::SyncDirectory& storing)
-: _colls(colls), _sortExpr(nullptr), _filtExpr(nullptr),
+FNIFI::FNIFI(const utils::SyncDirectory& storing)
+: _sortExpr(nullptr), _filtExpr(nullptr),
     _storing(storing)
 {
-    DLOG("FNIFI", this, "Instanciation with " << colls.size() << " collections"
-         " and SyncDirectory " << &storing)
+    DLOG("FNIFI", this, "Instanciation with SyncDirectory " << &storing)
 
     std::srand(static_cast<unsigned int>(std::time({})));
-
-    index();
-
-    for (const auto& coll : _colls) {
-        for (const auto& file : *coll) {
-            _files.insert(&file.second);
-        }
-    }
 }
+
+void FNIFI::addCollection(file::Collection& coll) {
+    indexColl(&coll);
+
+    for (const auto& file : coll) {
+        _files.insert(&file.second);
+    }
+
+    if (_sortExpr) {
+        sortColl(&coll);
+    }
+
+    if (_filtExpr) {
+        filterColl(&coll);
+    }
+
+    _colls.push_back(&coll);
+}
+
 
 void FNIFI::defragment() {
     DLOG("FNIFI", this, "Defragmentation")
@@ -98,63 +107,7 @@ void FNIFI::index() {
     DLOG("FNIFI", this, "Indexation")
 
     for (auto& coll : _colls) {
-        std::unordered_set<std::pair<const file::File*, fileId_t>> removed;
-        std::unordered_set<const file::File*> added;
-        std::unordered_set<file::File*> modified;
-
-        coll->index(removed, added, modified);
-
-        ILOG("FNIFI", this, "Collection " << &coll << " found "
-             << removed.size() << " removed files, " << added.size()
-             << " added and " << modified.size() << " modified")
-
-        /* update expressions */
-        const auto collHash = utils::Hash(coll->getName());
-        for (const auto& file : removed) {
-            expression::Expression::Uncache(_storing, collHash, file.second);
-            expression::Variable::Uncache(_storing, collHash, file.second);
-            _toRemove.insert(file.first);
-        }
-        for (const auto& file : added) {
-            /* process the file before inserting it */
-            if (_sortExpr) {
-                _sortExpr->get(file);
-            }
-            if (_filtExpr) {
-                _filtExpr->get(file);
-            }
-            _files.insert(file);
-        }
-        for (auto& file : modified) {
-            /* uncache for every expressions */
-            const auto id = file->getId();
-            expression::Expression::Uncache(_storing, collHash, id);
-            expression::Variable::Uncache(_storing, collHash, id);
-
-            /* overwrite the cache of the current expressions */
-            bool hasChanged = false;
-            if (_sortExpr) {
-                const auto prevScore = file->getSortingScore();
-                const auto score = _sortExpr->get(file);
-                file->setSortingScore(score);
-                hasChanged = hasChanged || (score != prevScore);
-            }
-            if (_filtExpr) {
-                const auto prevCheck = file->isFilteredOut();
-                const auto check = _filtExpr->get(file);
-                file->setIsFilteredOut(check);
-                hasChanged = hasChanged || (check != prevCheck);
-            }
-
-            /* update _files */
-            if (hasChanged) {
-                auto pos = _files.find(file);
-                if (pos != _files.end()) {
-                    _files.erase(pos);
-                }
-                _files.insert(file);
-            }
-        }
+        indexColl(coll);
     }
 }
 
@@ -165,18 +118,7 @@ void FNIFI::sort(const std::string& expr) {
     _sortExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
-        /* disable synchronization during the process to avoid too many calls
-         */
-        const auto collName = coll->getName();
-        _sortExpr->disableSync(collName);
-
-        for (auto& file : *coll) {
-            const auto score = _sortExpr->get(&file.second);
-            file.second.setSortingScore(score);
-            _files.insert(&file.second);
-        }
-
-        _sortExpr->enableSync(collName);
+        sortColl(coll);
     }
 }
 
@@ -186,17 +128,7 @@ void FNIFI::filter(const std::string& expr) {
     _filtExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
-        /* disable synchronization during the process to avoid too many calls
-         */
-        const auto collName = coll->getName();
-        _filtExpr->disableSync(collName);
-
-        for (auto& file : *coll) {
-            const auto check = (_filtExpr->get(&file.second) == 0);
-            file.second.setIsFilteredOut(check);
-        }
-
-        _filtExpr->enableSync(collName);
+        filterColl(coll);
     }
 }
 
@@ -218,4 +150,93 @@ FNIFI::Iterator FNIFI::begin() {
 
 FNIFI::Iterator FNIFI::end() {
     return Iterator(_files.end(), _toRemove, _files);
+}
+
+void FNIFI::indexColl(file::Collection* coll) {
+    std::unordered_set<std::pair<const file::File*, fileId_t>> removed;
+    std::unordered_set<const file::File*> added;
+    std::unordered_set<file::File*> modified;
+
+    coll->index(removed, added, modified);
+
+    ILOG("FNIFI", this, "Collection " << &coll << " found "
+         << removed.size() << " removed files, " << added.size()
+         << " added and " << modified.size() << " modified")
+
+    /* update expressions */
+    const auto collHash = utils::Hash(coll->getName());
+    for (const auto& file : removed) {
+        expression::Expression::Uncache(_storing, collHash, file.second);
+        expression::Variable::Uncache(_storing, collHash, file.second);
+        _toRemove.insert(file.first);
+    }
+    for (const auto& file : added) {
+        /* process the file before inserting it */
+        if (_sortExpr) {
+            _sortExpr->get(file);
+        }
+        if (_filtExpr) {
+            _filtExpr->get(file);
+        }
+        _files.insert(file);
+    }
+    for (auto& file : modified) {
+        /* uncache for every expressions */
+        const auto id = file->getId();
+        expression::Expression::Uncache(_storing, collHash, id);
+        expression::Variable::Uncache(_storing, collHash, id);
+
+        /* overwrite the cache of the current expressions */
+        bool hasChanged = false;
+        if (_sortExpr) {
+            const auto prevScore = file->getSortingScore();
+            const auto score = _sortExpr->get(file);
+            file->setSortingScore(score);
+            hasChanged = hasChanged || (score != prevScore);
+        }
+        if (_filtExpr) {
+            const auto prevCheck = file->isFilteredOut();
+            const auto check = _filtExpr->get(file);
+            file->setIsFilteredOut(check);
+            hasChanged = hasChanged || (check != prevCheck);
+        }
+
+        /* update _files */
+        if (hasChanged) {
+            auto pos = _files.find(file);
+            if (pos != _files.end()) {
+                _files.erase(pos);
+            }
+            _files.insert(file);
+        }
+    }
+}
+
+void FNIFI::sortColl(file::Collection* coll) {
+    /* disable synchronization during the process to avoid too many calls
+         */
+    const auto collName = coll->getName();
+    _sortExpr->disableSync(collName);
+
+    for (auto& file : *coll) {
+        const auto score = _sortExpr->get(&file.second);
+        file.second.setSortingScore(score);
+        _files.insert(&file.second);
+    }
+
+    _sortExpr->enableSync(collName);
+}
+
+void FNIFI::filterColl(file::Collection* coll) {
+    /* disable synchronization during the process to avoid too many calls
+         */
+    const auto collName = coll->getName();
+    _filtExpr->disableSync(collName);
+
+    for (auto& file : *coll) {
+        const auto check = (_filtExpr->get(&file.second) == 0);
+        file.second.setIsFilteredOut(check);
+    }
+
+    _filtExpr->enableSync(collName);
 }

@@ -39,12 +39,12 @@ int main(int argc, char** argv) {
     /* Synchronized directory (local processing and remote saving) */
     fnifi::utils::SyncDirectory storingLoc(storingSer, storingLocal);
 
-    /* Collections: the directory we want to index */
-    fnifi::file::Collection coll(indexingSer, storingLoc);
-    std::vector<fnifi::file::Collection*> colls = {&coll};
-
     /* File indexing */
-    fnifi::FNIFI fi(colls, storingLoc);
+    fnifi::FNIFI fi(storingLoc);
+
+    /* Collection: the directory we want to index */
+    fnifi::file::Collection coll(indexingSer, storingLoc);
+    fi.addCollection(coll);
 
     /* Loop over the files */
     std::cout << "Randomly loop over all the files:" << std::endl;

@@ -13,7 +13,11 @@ package fnifi {
         -_files : fileset_t
         -_toRemove : std::unordered_set<const file::File*>&
         -_storing : const utils::SyncDirectory&
-        +FNIFI(colls : std::vector<file::Collection*>&, storing : const utils::SyncDirectory&)
+        -indexColl(coll : file::Collection*)
+        -sortColl(coll : file::Collection*)
+        -filterColl(coll : file::Collection*)
+        +FNIFI(storing : const utils::SyncDirectory&)
+        +addCollection(colls : std::vector<file::Collection*>&)
         +index()
         +defragment()
         +sort(exp : const std::string&)
