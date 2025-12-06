@@ -22,6 +22,7 @@ class Collection : virtual public IFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
                const utils::SyncDirectory& storing);
+    Collection(Collection&& other) noexcept;
     ~Collection() override;
     void index(
         std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,

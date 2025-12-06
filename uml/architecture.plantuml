@@ -179,6 +179,7 @@ package fnifi {
             -_previewsMkdir : bool
             -{static} GetKind(buf : const fileBuf_t&) : Kind
             +Collection(indexingConn : IConnection*, storing : const utils::SyncDirectory&)
+            +Collection(other : Collection&&)
             +~Collection()
             +index(removed : std::unordered_set<std::pair<const file::File*, fileId_t>&,
             added : std::unordered_set<const file::File*>&,

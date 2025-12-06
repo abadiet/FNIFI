@@ -53,6 +53,18 @@ Collection::Collection(connection::IConnection* indexingConn,
     _mapping->clear();
 }
 
+Collection::Collection(Collection&& other) noexcept
+    : _files(std::move(other._files)),
+      _indexingConn(other._indexingConn),
+      _storing(other._storing),
+      _storingPath(std::move(other._storingPath)),
+      _mapping(std::move(other._mapping)),
+      _filepaths(std::move(other._filepaths)),
+      _info(std::move(other._info)),
+      _availableIds(std::move(other._availableIds)),
+      _previewsMkdir(other._previewsMkdir)
+{}
+
 Collection::~Collection() {
     if (_mapping->is_open()) {
         _mapping->close();
