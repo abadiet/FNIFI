@@ -22,16 +22,19 @@ Collection::Collection(connection::IConnection* indexingConn,
                        const utils::SyncDirectory& storing)
 : _indexingConn(indexingConn), _storing(storing),
     _storingPath(utils::Hash(getName())),
-    _mapping(_storing.open(_storingPath / MAPPING_FILE)),
-    _filepaths(_storing.open(_storingPath / FILEPATHS_FILE)),
-    _info(_storing.open(_storingPath / INFO_FILE)), _previewsMkdir(true)
+    _mapping(std::make_unique<utils::SyncDirectory::FileStream>
+             (_storing, _storingPath / MAPPING_FILE)),
+    _filepaths(std::make_unique<utils::SyncDirectory::FileStream>
+               (_storing, _storingPath / FILEPATHS_FILE)),
+    _info(std::make_unique<utils::SyncDirectory::FileStream>
+          (_storing, _storingPath / INFO_FILE)), _previewsMkdir(true)
 {
     DLOG("Collection", this, "Instanciation for IConnection " << indexingConn)
 
     /* setup _files and _availableIds */
     MapNode node;
     fileId_t id = 0;
-    while (utils::Deserialize(_mapping, node)) {
+    while (utils::Deserialize(*_mapping, node)) {
         if (node.lenght > 0) {
             _files.insert({id, File(id, this)});
         } else {
@@ -43,22 +46,22 @@ Collection::Collection(connection::IConnection* indexingConn,
     ILOG("Collection", this, "Found " << _files.size() << " files and "
          << _availableIds.size() << " available ids at initialisation")
 
-    if (!_mapping.eof() && _mapping.fail()) {
+    if (!_mapping->eof() && _mapping->fail()) {
         throw std::runtime_error("Error reading " +
-                                 _mapping.getPath().string());
+                                 _mapping->getPath().string());
     }
-    _mapping.clear();
+    _mapping->clear();
 }
 
 Collection::~Collection() {
-    if (_mapping.is_open()) {
-        _mapping.close();
+    if (_mapping->is_open()) {
+        _mapping->close();
     }
-    if (_filepaths.is_open()) {
-        _filepaths.close();
+    if (_filepaths->is_open()) {
+        _filepaths->close();
     }
-    if (_info.is_open()) {
-        _info.close();
+    if (_info->is_open()) {
+        _info->close();
     }
 }
 
@@ -69,17 +72,17 @@ void Collection::index(
 {
     DLOG("Collection", this, "Indexation")
 
-    _mapping.pull();
-    _filepaths.pull();
-    _info.pull();
+    _mapping->pull();
+    _filepaths->pull();
+    _info->pull();
 
     /* get current info, including last indexing time */
     Info info;
-    _info.seekg(0, std::ios::end);
-    if (_info.tellg() > 0) {
+    _info->seekg(0, std::ios::end);
+    if (_info->tellg() > 0) {
         /* the file is not empty */
-        _info.seekg(0);
-        utils::Deserialize(_info, info);
+        _info->seekg(0);
+        utils::Deserialize(*_info, info);
     }
 
     DLOG("Collection", this, "The most recent file already indexed has been "
@@ -100,17 +103,17 @@ void Collection::index(
                  "removed")
 
             /* remove from _mapping */
-            _mapping.seekg(id * sizeof(MapNode));
+            _mapping->seekg(id * sizeof(MapNode));
             MapNode node;
-            utils::Deserialize(_mapping, node);
+            utils::Deserialize(*_mapping, node);
             std::string placeholderPath(node.lenght, FILEPATH_EMPTY_CHAR);
             node.lenght = 0;
-            _mapping.seekp(id * sizeof(MapNode));
-            utils::Serialize(_mapping, node);
+            _mapping->seekp(id * sizeof(MapNode));
+            utils::Serialize(*_mapping, node);
 
             /* remove from _filepaths */
-            _filepaths.seekp(std::streamoff(node.offset));
-            _filepaths.write(placeholderPath.data(),
+            _filepaths->seekp(std::streamoff(node.offset));
+            _filepaths->write(placeholderPath.data(),
                              std::streamsize(placeholderPath.size()));
 
             _availableIds.insert(id);
@@ -140,9 +143,9 @@ void Collection::index(
 
             /* add the filepath */
             const auto lenght = static_cast<lenght_t>(entry.path.size());
-            _filepaths.seekp(0, std::ios::end);
-            const auto offset = static_cast<offset_t>(_filepaths.tellp());
-            _filepaths.write(&entry.path[0], lenght);
+            _filepaths->seekp(0, std::ios::end);
+            const auto offset = static_cast<offset_t>(_filepaths->tellp());
+            _filepaths->write(&entry.path[0], lenght);
 
             /* add the mapping */
             const MapNode node = {offset, lenght};
@@ -155,14 +158,14 @@ void Collection::index(
                 DLOG("Collection", this, "Recycle id " << id << " for the new "
                      "file " << entry.path)
 
-                _mapping.seekp(id * sizeof(MapNode));
+                _mapping->seekp(id * sizeof(MapNode));
                 _availableIds.erase(pos);
             } else {
                 id = static_cast<fileId_t>(_files.size());
-                _mapping.seekp(0, std::ios::end);
+                _mapping->seekp(0, std::ios::end);
             }
 
-            utils::Serialize(_mapping, node);
+            utils::Serialize(*_mapping, node);
 
             /* add to _files */
             _files.insert({id, File(id, this)});
@@ -177,23 +180,23 @@ void Collection::index(
     info.lastIndexing = mostRecentTime;
 
     /* update info's file */
-    _info.seekg(0);
-    utils::Serialize(_info, info);
+    _info->seekg(0);
+    utils::Serialize(*_info, info);
 
     DLOG("Collection", this, "The most recent file already indexed is now "
          "created at " << S_TO_NS(info.lastIndexing.tv_sec) +
          info.lastIndexing.tv_nsec << "ns")
 
-    _mapping.push();
-    _filepaths.push();
-    _info.push();
+    _mapping->push();
+    _filepaths->push();
+    _info->push();
 }
 
 void Collection::defragment() {
     DLOG("Collection", this, "Defragmentation")
 
-    _mapping.pull();
-    _filepaths.pull();
+    _mapping->pull();
+    _filepaths->pull();
 
     /* find and remove unused chunks */
     std::vector<std::pair<offset_t, size_t>> chunks;
@@ -202,16 +205,16 @@ void Collection::defragment() {
         utils::TempFile file;
 
         /* find chunks and fill the temporary file */
-        _filepaths.seekg(0);
+        _filepaths->seekg(0);
         char c;
         bool inChunk = false;
-        while (_filepaths.get(c)) {
+        while (_filepaths->get(c)) {
             if (c == FILEPATH_EMPTY_CHAR) {
                 if (inChunk) {
                     chunks.back().second++;
                 } else {
                     chunks.push_back({
-                        static_cast<offset_t>(_filepaths.tellg()) - 1, 1});
+                        static_cast<offset_t>(_filepaths->tellg()) - 1, 1});
                     inChunk = true;
                 }
             } else {
@@ -221,17 +224,17 @@ void Collection::defragment() {
         }
 
         /* update _filepaths */
-        _filepaths.take(file);
+        _filepaths->take(file);
     }
 
     DLOG("Collection", this, "Found " << chunks.size() << " chunks to remove")
 
     /* adjust offsets */
     {
-        _mapping.seekg(0);
+        _mapping->seekg(0);
         MapNode node;
-        auto prevTellp = _mapping.tellp();
-        while (utils::Deserialize(_mapping, node)) {
+        auto prevTellp = _mapping->tellp();
+        while (utils::Deserialize(*_mapping, node)) {
             size_t sz = 0;
             auto it = chunks.begin();
             while (it != chunks.end() && it->first < node.offset) {
@@ -242,29 +245,29 @@ void Collection::defragment() {
             }
             if (sz > 0) {
                 node.offset -= sz;
-                _mapping.seekp(prevTellp);
-                utils::Serialize(_mapping, node);
+                _mapping->seekp(prevTellp);
+                utils::Serialize(*_mapping, node);
             }
-            prevTellp = _mapping.tellp();
+            prevTellp = _mapping->tellp();
         }
-        if (!_mapping.eof() && _mapping.fail()) {
+        if (!_mapping->eof() && _mapping->fail()) {
             std::ostringstream msg;
-            msg << "Error while reading " << _mapping.getPath().string();
+            msg << "Error while reading " << _mapping->getPath().string();
             ELOG("Collection", this, msg.str())
             throw std::runtime_error(msg.str());
         }
-        _mapping.clear();
+        _mapping->clear();
     }
 
-    _mapping.push();
-    _filepaths.push();
+    _mapping->push();
+    _filepaths->push();
 }
 
 std::string Collection::getFilePath(fileId_t id) {
     /* get map's node */
-    _mapping.seekg(id * sizeof(MapNode));
+    _mapping->seekg(id * sizeof(MapNode));
     MapNode node;
-    utils::Deserialize(_mapping, node);
+    utils::Deserialize(*_mapping, node);
 
     if (node.lenght == 0) {
         std::ostringstream msg;
@@ -276,8 +279,8 @@ std::string Collection::getFilePath(fileId_t id) {
 
     /* get filepath */
     std::string path(node.lenght + 1, '\0');
-    _filepaths.seekp(std::streamoff(node.offset));
-    _filepaths.read(&path[0], node.lenght);
+    _filepaths->seekp(std::streamoff(node.offset));
+    _filepaths->read(&path[0], node.lenght);
 
     return path;
 }

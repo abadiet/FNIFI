@@ -6,13 +6,13 @@
 #include "fnifi/file/Kind.hpp"
 #include "fnifi/file/IFileHelper.hpp"
 #include "fnifi/file/File.hpp"
-#include "fnifi/expression/Kind.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
 #include <time.h>
 #include <filesystem>
+#include <memory>
 
 
 namespace fnifi {
@@ -57,9 +57,9 @@ private:
     connection::IConnection* _indexingConn;
     const utils::SyncDirectory& _storing;
     const std::filesystem::path _storingPath;
-    utils::SyncDirectory::FileStream _mapping;
-    utils::SyncDirectory::FileStream _filepaths;
-    utils::SyncDirectory::FileStream _info;
+    std::unique_ptr<utils::SyncDirectory::FileStream> _mapping;
+    std::unique_ptr<utils::SyncDirectory::FileStream> _filepaths;
+    std::unique_ptr<utils::SyncDirectory::FileStream> _info;
     std::unordered_set<fileId_t> _availableIds;
     bool _previewsMkdir;
 };

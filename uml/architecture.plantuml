@@ -172,8 +172,9 @@ package fnifi {
             -_storing : const utils::SyncDirectory&
             -_storingPath : const std::filesystem::path
             -_files : std::unordered_map<fileId_t, File>
-            -_mapping : utils::SyncDirectory::FileStream
-            -_filepaths : utils::SyncDirectory::FileStream
+            -_mapping : std::unique_ptr<utils::SyncDirectory::FileStream>
+            -_filepaths : std::unique_ptr<utils::SyncDirectory::FileStream>
+            -_info : std::unique_ptr<utils::SyncDirectory::FileStream>
             -_availableIds : std::unordered_set<filedId_t>
             -_previewsMkdir : bool
             -{static} GetKind(buf : const fileBuf_t&) : Kind
