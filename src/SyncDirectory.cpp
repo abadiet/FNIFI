@@ -118,7 +118,7 @@ void SyncDirectory::FileStream::setup(bool ate) {
 }
 
 SyncDirectory::SyncDirectory(connection::IConnection* conn,
-                             const std::filesystem::path& path)
+                             const std::string& path)
 : _conn(conn), _path(path)
 {
     DLOG("SyncDirectory", this, "Instanciation for IConnection " << conn

@@ -38,8 +38,7 @@ public:
         friend SyncDirectory;
     };
 
-    SyncDirectory(connection::IConnection* conn,
-                  const std::filesystem::path& path);
+    SyncDirectory(connection::IConnection* conn, const std::string& path);
     FileStream open(const std::filesystem::path& filepath, bool ate = false,
                     bool mkdir = true) const;
     bool exists(const std::filesystem::path& filepath) const;

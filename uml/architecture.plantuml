@@ -74,7 +74,7 @@ package fnifi {
             -pull(abspath : const std::filesystem::path&,
             relapath : const std::filesystem::path&) : bool
             -push(relapath : const std::filesystem::path&, buf : const fileBuf_t&)
-            +SyncDirectory(conn : const IConnection*, path : const std::filesystem::path&)
+            +SyncDirectory(conn : const IConnection*, path : const std::string&)
             +open(filepath : const std::filesystem::path&, ate : bool := false,
             mkdir : bool := true) : FileStream
         }
