@@ -25,7 +25,7 @@ package fnifi {
         +getFiles() : const std::vector<File*>&
         +begin() : Iterator
         +end() : Iterator
-        +getFiles() : const fileset_t&
+        +getFiles() : fileset_t
     }
 
     class FNIFI::Iterator {

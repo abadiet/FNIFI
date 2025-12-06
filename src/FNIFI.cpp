@@ -152,7 +152,7 @@ FNIFI::Iterator FNIFI::end() {
     return Iterator(_files.end(), _toRemove, _files);
 }
 
-const FNIFI::fileset_t& FNIFI::getFiles() const {
+FNIFI::fileset_t FNIFI::getFiles() const {
     return _files;
 }
 

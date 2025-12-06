@@ -53,7 +53,7 @@ public:
     void clearFilter();
     Iterator begin();
     Iterator end();
-    const fileset_t& getFiles() const;
+    fileset_t getFiles() const;
 
 private:
     void indexColl(file::Collection* coll);
