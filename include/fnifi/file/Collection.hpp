@@ -1,17 +1,17 @@
-#include "fnifi/expression/Type.hpp"
 #ifndef FNIFI_FILE_COLLECTION_HPP
-#include <filesystem>
 #define FNIFI_FILE_COLLECTION_HPP
 
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils/SyncDirectory.hpp"
 #include "fnifi/file/File.hpp"
 #include "fnifi/file/Type.hpp"
+#include "fnifi/expression/Type.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
 #include <time.h>
+#include <filesystem>
 
 
 namespace fnifi {

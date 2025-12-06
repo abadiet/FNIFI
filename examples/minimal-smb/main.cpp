@@ -14,8 +14,8 @@ int main(int argc, char** argv) {
             "<shareSMB> <workgroupSMB> <usernameSMB> <passwordSMB>"
             << std::endl << "example: " << argv[0] << " ~/.fnifi .fnifi "
             "content 127.0.0.1 MyNAS WORKGROUP user0 mypassword" << std::endl
-            << "will index smb://127.0.0.1/MyNAS/content, connected as user0 with "
-            "password 'mypassword' and will save indexing in "
+            << "will index smb://127.0.0.1/MyNAS/content, connected as user0 "
+            "with password 'mypassword' and will save indexing in "
             "smb://127.0.0.1/MyNAS/.fnifi and locally in ~/.fnifi";
         return 1;
     }
