@@ -1,7 +1,8 @@
 #include <fnifi/FNIFI.hpp>
 #include <fnifi/file/Collection.hpp>
 #include <fnifi/file/File.hpp>
-#include <fnifi/connection/ConnectionBuilder.hpp>
+#include <fnifi/connection/SMB.hpp>
+#include <fnifi/connection/Relative.hpp>
 #include <iostream>
 #include <ostream>
 
@@ -29,18 +30,19 @@ int main(int argc, char** argv) {
     const std::string passwordSMB(argv[8]);
 
     /* Connections */
-    auto indexingSer = fnifi::connection::ConnectionBuilder::GetSMB(
-        serverSMB, shareSMB, workgroupSMB, usernameSMB, passwordSMB,
-        { indexingServer });
-    auto storingSer = fnifi::connection::ConnectionBuilder::GetSMB(
-        serverSMB, shareSMB, workgroupSMB, usernameSMB, passwordSMB,
-        { storingServer });
+    fnifi::connection::SMB connection(serverSMB, shareSMB, workgroupSMB,
+                                      usernameSMB, passwordSMB);
+    connection.connect();
+    fnifi::connection::Relative storingSer(&connection, storingServer);
+    storingSer.connect();
+    fnifi::connection::Relative indexingSer(&connection, indexingServer);
+    indexingSer.connect();
 
     /* Synchronized directory (local processing and remote saving) */
-    fnifi::utils::SyncDirectory storingLoc(storingSer, storingLocal);
+    fnifi::utils::SyncDirectory storingLoc(&storingSer, storingLocal);
 
     /* Collections: the directory we want to index */
-    fnifi::file::Collection coll(indexingSer, storingLoc);
+    fnifi::file::Collection coll(&indexingSer, storingLoc);
     std::vector<fnifi::file::Collection*> colls = {&coll};
 
     /* File indexing */
@@ -57,7 +59,9 @@ int main(int argc, char** argv) {
     fi.filter("(> ctime 2345678987)");
 
     /* Cleaning */
-    fnifi::connection::ConnectionBuilder::Free();
+    connection.disconnect();
+    indexingSer.disconnect();
+    storingSer.disconnect();
 
     return 0;
 }

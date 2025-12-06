@@ -201,6 +201,18 @@ package fnifi {
     }
 
     package connection {
+        struct ConnectionBuilder::Options {
+            +relativePath : std::string
+        }
+
+        class ConnectionBuilder {
+            -{static} _built : std::unordered_map<std::string, IConnection*>
+            +{static} GetLocal(opt : const Options&) : IConnection*
+            +{static} GetSMB(addr : const std::string&, user : const std::string&,
+            pwd : const std::string&, opt : const Options&) : IConnection*
+            +{static} Free()
+        }
+
         struct DirectoryIterator::Entry {
             +path : std::string
             +ctime : struct timespec
