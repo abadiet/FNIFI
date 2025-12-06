@@ -152,6 +152,10 @@ FNIFI::Iterator FNIFI::end() {
     return Iterator(_files.end(), _toRemove, _files);
 }
 
+const FNIFI::fileset_t& FNIFI::getFiles() const {
+    return _files;
+}
+
 void FNIFI::indexColl(file::Collection* coll) {
     std::unordered_set<std::pair<const file::File*, fileId_t>> removed;
     std::unordered_set<const file::File*> added;
