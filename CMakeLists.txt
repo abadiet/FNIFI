@@ -48,7 +48,7 @@ if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     if(GIT_SUBMODULE)
         message(STATUS "Downloading git submodules...")
         execute_process(
-            COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+            COMMAND ${GIT_EXECUTABLE} submodule update --init
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
     endif()
