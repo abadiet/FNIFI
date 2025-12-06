@@ -3,9 +3,10 @@
 
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils/SyncDirectory.hpp"
+#include "fnifi/file/Kind.hpp"
+#include "fnifi/file/IFileHelper.hpp"
 #include "fnifi/file/File.hpp"
-#include "fnifi/file/Type.hpp"
-#include "fnifi/expression/Type.hpp"
+#include "fnifi/expression/Kind.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <unordered_set>
 #include <unordered_map>
@@ -29,7 +30,7 @@ public:
     void defragment();
     std::string getFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
-    Type getType(fileId_t id) override;
+    Kind getKind(fileId_t id) override;
     fileBuf_t preview(fileId_t id) override;
     fileBuf_t read(fileId_t id) override;
     std::string getName() const override;
@@ -50,7 +51,7 @@ private:
         struct timespec lastIndexing = {0, 0};
     };
 
-    static Type GetType(const fileBuf_t& buf);
+    static Kind GetKind(const fileBuf_t& buf);
 
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;

@@ -287,9 +287,9 @@ struct stat Collection::getStats(fileId_t id) {
     return _indexingConn->getStats(filepath);
 }
 
-Type Collection::getType(fileId_t id) {
+Kind Collection::getKind(fileId_t id) {
     const auto content = read(id);
-    return GetType(content);
+    return GetKind(content);
 }
 
 fileBuf_t Collection::read(fileId_t id) {
@@ -312,7 +312,7 @@ fileBuf_t Collection::preview(fileId_t id) {
         /* the file did not exists and has to be created */
         const auto original = read(id);
 
-        const auto type = GetType(original);
+        const auto type = GetKind(original);
         switch (type) {
             case JPEG:
             case PNG:
@@ -378,14 +378,14 @@ std::string Collection::getName() const {
     return _indexingConn->getName();
 }
 
-Type Collection::GetType(const fileBuf_t& buf) {
+Kind Collection::GetKind(const fileBuf_t& buf) {
     if (buf.size() > 3 && buf[0] == 0xFF && buf[1] == 0xD8 && buf[2] == 0xFF) {
-        return Type::JPEG;
+        return Kind::JPEG;
     }
     if (buf.size() > 4 && buf[0] == 0x89 && buf[1] == 0x50 && buf[2] == 0x4E &&
         buf[3] == 0x47)
     {
-        return Type::PNG;
+        return Kind::PNG;
     }
-    return Type::UNKNOWN;
+    return Kind::UNKNOWN;
 }

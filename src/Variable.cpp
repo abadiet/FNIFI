@@ -6,9 +6,9 @@
 using namespace fnifi;
 using namespace fnifi::expression;
 
-Type Variable::GetType(const std::string& name) {
-    if (name == "ctime") return Type::CTIME;
-    return Type::UNKOWN;
+Kind Variable::GetKind(const std::string& name) {
+    if (name == "ctime") return Kind::CTIME;
+    return Kind::UNKOWN;
 }
 
 void Variable::Uncache(const utils::SyncDirectory& sync,
@@ -28,11 +28,11 @@ Variable::Variable(const std::string& key,
     const auto pos = key.find('.');
     if (pos == std::string::npos) {
         /* this is a listed variable */
-        _type = Variable::GetType(key);
+        _type = Variable::GetKind(key);
         _name = key;
     } else {
         /* this is an unkown variable */
-        _type = Variable::GetType(key.substr(pos));
+        _type = Variable::GetKind(key.substr(pos));
         _name = key.substr(pos + 1);
     }
 

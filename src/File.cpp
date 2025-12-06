@@ -32,11 +32,11 @@ struct stat File::getStats() const {
     return _helper->getStats(_id);
 }
 
-Type File::getType() {
-    return _helper->getType(_id);
+Kind File::getKind() {
+    return _helper->getKind(_id);
 }
 
-std::ostream& File::getMetadata(std::ostream& os, expression::Type type,
+std::ostream& File::getMetadata(std::ostream& os, expression::Kind type,
                                 const std::string& key) const {
     DLOG("File", this, "Receive request for metadata of type " << type
          << " and key \"" << key << "\"")

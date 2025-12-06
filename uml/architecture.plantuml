@@ -107,10 +107,10 @@ package fnifi {
         }
 
         class Variable extends DiskBacked {
-            -_type : Type
+            -_type : Kind
             -_key : std::string
             -getValue(file : const file::File*, noCache : bool) : expr_t
-            +{static} GetType(name : const std::string&) : Type
+            +{static} GetKind(name : const std::string&) : Kind
             +{static} Uncache(storing : const utils::SyncDirectory&,
             +Variable(key : const std::string&, storing : const utils::SyncDirectory&,
             colls : const std::vector<file::Collection*>&)
@@ -118,7 +118,7 @@ package fnifi {
             +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
 
-        enum Type {
+        enum Kind {
             +CTIME
             +XMP
             +EXIF
@@ -126,12 +126,12 @@ package fnifi {
             +UNKNOWN
         }
 
-        Variable *--> Type : 1..1\n_type
+        Variable *--> Kind : 1..1\n_type
 
     }
 
     package file {
-        enum Type {
+        enum Kind {
             +JPEG,
             +PNG,
             +UNKNOWN
@@ -140,7 +140,7 @@ package fnifi {
         interface IFileHelper {
             +getFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
-            +getType(id : fileId_t) : Type
+            +getKind(id : fileId_t) : Kind
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +getName() : std::string
@@ -156,8 +156,8 @@ package fnifi {
             +getId() : fileId_t
             +getPath() : std::string
             +getStats() : struct stat
-            +getType() : Type
-            +getMetadata(os : std::ostream&, type : expression::Type,
+            +getKind() : Kind
+            +getMetadata(os : std::ostream&, type : expression::Kind,
             key : const std::string&) : std::ostream&
             +preview() : fileBuf_t
             +read() : fileBuf_t
@@ -176,7 +176,7 @@ package fnifi {
             -_filepaths : utils::SyncDirectory::FileStream
             -_availableIds : std::unordered_set<filedId_t>
             -_previewsMkdir : bool
-            -{static} GetType(buf : const fileBuf_t&) : Type
+            -{static} GetKind(buf : const fileBuf_t&) : Kind
             +Collection(indexingConn : IConnection*, storing : const utils::SyncDirectory&)
             +~Collection()
             +index(removed : std::unordered_set<std::pair<const file::File*, fileId_t>&,
@@ -185,7 +185,7 @@ package fnifi {
             +defragment()
             +getFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
-            +getType(id : fileId_t) : Type
+            +getKind(id : fileId_t) : Kind
             +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +getName() : std::string

@@ -2,8 +2,8 @@
 #define FNIFI_FILE_FILE_HPP
 
 #include "fnifi/file/IFileHelper.hpp"
-#include "fnifi/expression/Type.hpp"
-#include "fnifi/file/Type.hpp"
+#include "fnifi/expression/Kind.hpp"
+#include "fnifi/file/Kind.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <sys/stat.h>
 #include <exiv2/exiv2.hpp>
@@ -25,8 +25,8 @@ public:
     fileId_t getId() const;
     std::string getPath() const;
     struct stat getStats() const;
-    Type getType();
-    std::ostream& getMetadata(std::ostream& os, expression::Type type,
+    Kind getKind();
+    std::ostream& getMetadata(std::ostream& os, expression::Kind type,
                               const std::string& key) const;
     fileBuf_t preview() const;
     fileBuf_t read() const;

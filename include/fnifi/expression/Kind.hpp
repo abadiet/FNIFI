@@ -1,10 +1,10 @@
-#ifndef FNIFI_EXPRESSION_TYPE_HPP
-#define FNIFI_EXPRESSION_TYPE_HPP
+#ifndef FNIFI_EXPRESSION_KIND_HPP
+#define FNIFI_EXPRESSION_KIND_HPP
 
 namespace fnifi {
 namespace expression {
 
-enum Type {
+enum Kind {
     CTIME,   /* creation time */
     XMP,     /* XMP generic metadata */
     EXIF,    /* EXIF generic metadata */
@@ -15,4 +15,4 @@ enum Type {
 }  /* namespace expression */
 }  /* namespace fnifi */
 
-#endif  /* FNIFI_EXPRESSION_TYPE_HPP */
+#endif  /* FNIFI_EXPRESSION_KIND_HPP */

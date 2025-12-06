@@ -2,7 +2,7 @@
 #define FNIFI_FILE_IFILEHELPER_HPP
 
 #include "fnifi/utils/utils.hpp"
-#include "fnifi/file/Type.hpp"
+#include "fnifi/file/Kind.hpp"
 #include <sys/stat.h>
 
 
@@ -14,7 +14,7 @@ public:
     virtual ~IFileHelper();
     virtual std::string getFilePath(fileId_t id) = 0;
     virtual struct stat getStats(fileId_t id) = 0;
-    virtual Type getType(fileId_t id) = 0;
+    virtual Kind getKind(fileId_t id) = 0;
     virtual fileBuf_t preview(fileId_t id) = 0;
     virtual fileBuf_t read(fileId_t id) = 0;
     virtual std::string getName() const = 0;

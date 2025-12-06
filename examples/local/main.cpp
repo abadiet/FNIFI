@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         std::cout << file->getPath() << ": ctime="
             << ctime.tv_sec << "s and " << ctime.tv_nsec
             << "ns, Exif.Image.Model=";
-        file->getMetadata(std::cout, fnifi::expression::Type::EXIF,
+        file->getMetadata(std::cout, fnifi::expression::Kind::EXIF,
                           "Exif.Image.Model");
         std::cout << std::endl;
     }
