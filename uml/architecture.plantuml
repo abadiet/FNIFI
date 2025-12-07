@@ -17,7 +17,7 @@ package fnifi {
         -sortColl(coll : file::Collection*)
         -filterColl(coll : file::Collection*)
         +FNIFI(storing : const utils::SyncDirectory&)
-        +addCollection(colls : std::vector<file::Collection*>&)
+        +addCollection(colls : std::vector<file::Collection*>&, index : bool := false)
         +index()
         +defragment()
         +sort(exp : const std::string&)
@@ -173,6 +173,7 @@ package fnifi {
             +setIsFilteredOut(isFilteredOut : bool)
             +isFileteredOut() : boll
             +getCollectionName() : std::string
+            +setHelper(IFileHelper* helper)
         }
 
         class Collection extends IFileHelper {

@@ -140,3 +140,7 @@ bool File::isFilteredOut() const {
 std::string File::getCollectionName() const {
     return _helper->getName();
 }
+
+void File::setHelper(IFileHelper* helper) {
+    _helper = helper;
+}

@@ -50,6 +50,7 @@ int main(int argc, char** argv) {
     std::cout << "Randomly loop over all the files:" << std::endl;
     for (const auto file : fi) {
         std::cout << file->getPath() << std::endl;
+        std::cout << file->getLocalPreviewPath() << std::endl;
     }
 
     fi.sort("(+ ctime 0)");

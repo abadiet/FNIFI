@@ -35,6 +35,7 @@ public:
     void setIsFilteredOut(bool isFilteredOut);
     bool isFilteredOut() const;
     std::string getCollectionName() const;
+    void setHelper(IFileHelper* helper);
 
 private:
     const fileId_t _id;

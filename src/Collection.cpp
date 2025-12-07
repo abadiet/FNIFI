@@ -52,7 +52,7 @@ Collection::Collection(connection::IConnection* indexingConn,
 }
 
 Collection::Collection(Collection&& other) noexcept
-    : _files(),
+    : _files(std::move(other._files)),
     _indexingConn(other._indexingConn),
     _storing(other._storing),
     _storingPath(std::move(other._storingPath)),
@@ -62,26 +62,12 @@ Collection::Collection(Collection&& other) noexcept
                (_storing, _storingPath / FILEPATHS_FILE)),
     _info(std::make_unique<utils::SyncDirectory::FileStream>
           (_storing, _storingPath / INFO_FILE)),
-    _availableIds(),
+    _availableIds(std::move(other._availableIds)),
     _previewsMkdir(other._previewsMkdir)
 {
-    MapNode node;
-    fileId_t id = 0;
-    while (utils::Deserialize(*_mapping, node)) {
-        if (node.lenght > 0) {
-            _files.insert({id, File(id, this)});
-        } else {
-            _availableIds.insert(id);
-        }
-        id++;
+    for (auto& file : _files) {
+        file.second.setHelper(this);
     }
-    ILOG("Collection", this, "Found " << _files.size() << " files and "
-         << _availableIds.size() << " available ids")
-    if (!_mapping->eof() && _mapping->fail()) {
-        ELOG("Collection", this, "Error reading " +
-             _mapping->getPath().string())
-    }
-    _mapping->clear();
 }
 
 Collection::~Collection() {
