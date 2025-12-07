@@ -29,32 +29,12 @@ Collection::Collection(connection::IConnection* indexingConn,
     _info(std::make_unique<utils::SyncDirectory::FileStream>
           (_storing, _storingPath / INFO_FILE)), _previewsMkdir(true)
 {
-    DLOG("Collection", this, "Instanciation for IConnection " << indexingConn)
-
-    /* setup _files and _availableIds */
-    MapNode node;
-    fileId_t id = 0;
-    while (utils::Deserialize(*_mapping, node)) {
-        if (node.lenght > 0) {
-            _files.insert({id, File(id, this)});
-        } else {
-            _availableIds.insert(id);
-        }
-        id++;
-    }
-
-    ILOG("Collection", this, "Found " << _files.size() << " files and "
-         << _availableIds.size() << " available ids at initialisation")
-
-    if (!_mapping->eof() && _mapping->fail()) {
-        throw std::runtime_error("Error reading " +
-                                 _mapping->getPath().string());
-    }
-    _mapping->clear();
+    DLOG("Collection", this, "Instanciation for IConnection " << indexingConn
+         << " and SyncDirectory " << &storing)
 }
 
 Collection::Collection(Collection&& other) noexcept
-    : _files(std::move(other._files)),
+    : _files(),
     _indexingConn(other._indexingConn),
     _storing(other._storing),
     _storingPath(std::move(other._storingPath)),
@@ -64,7 +44,7 @@ Collection::Collection(Collection&& other) noexcept
                (_storing, _storingPath / FILEPATHS_FILE)),
     _info(std::make_unique<utils::SyncDirectory::FileStream>
           (_storing, _storingPath / INFO_FILE)),
-    _availableIds(std::move(other._availableIds)),
+    _availableIds(),
     _previewsMkdir(other._previewsMkdir)
 {}
 
@@ -90,6 +70,29 @@ void Collection::index(
     _mapping->pull();
     _filepaths->pull();
     _info->pull();
+
+    /* retrieve files */
+    /* TODO: update files thanks to _mapping everytime, not if _files is empty
+     */
+    if (_files.empty()) {
+        MapNode node;
+        fileId_t id = 0;
+        while (utils::Deserialize(*_mapping, node)) {
+            if (node.lenght > 0) {
+                _files.insert({id, File(id, this)});
+            } else {
+                _availableIds.insert(id);
+            }
+            id++;
+        }
+        ILOG("Collection", this, "Found " << _files.size() << " files and "
+             << _availableIds.size() << " available ids")
+        if (!_mapping->eof() && _mapping->fail()) {
+            throw std::runtime_error("Error reading " +
+                                     _mapping->getPath().string());
+        }
+        _mapping->clear();
+    }
 
     /* get current info, including last indexing time */
     Info info;

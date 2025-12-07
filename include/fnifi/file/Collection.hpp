@@ -22,6 +22,9 @@ class Collection : virtual public IFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
                utils::SyncDirectory& storing);
+    /**
+     * @warning use only if non associated to a FNIFI instance
+     */
     Collection(Collection&& other) noexcept;
     ~Collection() override;
     void index(
