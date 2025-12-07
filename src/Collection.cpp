@@ -370,6 +370,7 @@ fileBuf_t Collection::preview(fileId_t id) {
         return {};
     }
 
+    file.seekg(0);
     const fileBuf_t buf((std::istreambuf_iterator<char>(file)),
                         std::istreambuf_iterator<char>());
     return buf;
