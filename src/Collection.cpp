@@ -19,7 +19,7 @@ using namespace fnifi;
 using namespace fnifi::file;
 
 Collection::Collection(connection::IConnection* indexingConn,
-                       const utils::SyncDirectory& storing)
+                       utils::SyncDirectory& storing)
 : _indexingConn(indexingConn), _storing(storing),
     _storingPath(utils::Hash(getName())),
     _mapping(std::make_unique<utils::SyncDirectory::FileStream>

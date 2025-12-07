@@ -21,7 +21,7 @@ namespace file {
 class Collection : virtual public IFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
-               const utils::SyncDirectory& storing);
+               utils::SyncDirectory& storing);
     Collection(Collection&& other) noexcept;
     ~Collection() override;
     void index(
