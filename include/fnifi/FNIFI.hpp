@@ -43,7 +43,7 @@ public:
         fileset_t& _files;
     };
 
-    FNIFI(const utils::SyncDirectory& storing);
+    FNIFI(utils::SyncDirectory& storing);
     void addCollection(file::Collection& coll);
     void index();
     void defragment();

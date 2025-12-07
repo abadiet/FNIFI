@@ -67,7 +67,7 @@ bool FNIFI::Iterator::operator!=(const Iterator& other) const {
     return !(*this == other);
 }
 
-FNIFI::FNIFI(const utils::SyncDirectory& storing)
+FNIFI::FNIFI(utils::SyncDirectory& storing)
 : _sortExpr(nullptr), _filtExpr(nullptr),
     _storing(storing)
 {
