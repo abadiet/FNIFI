@@ -7,24 +7,39 @@
 #include <iostream>
 #include <chrono>
 #include <format>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
 
 #define UNUSED(x) (void)x;
 #define TODO throw std::runtime_error("Not yet implemented");
 
 #ifdef FNIFI_DEBUG
+/* TODO: using mutex for logs can lead to some serious blocking situations */
 #define LOG                                                                   \
+    {                                                                         \
+    std::unique_lock lk(fnifi::utils::logMtx);                                \
+    fnifi::utils::logCv.wait(lk, []{ return true; });                         \
     std::clog << "["                                                          \
         << std::format("{:%Y-%m-%d %H:%M:%S}",                                \
                        std::chrono::system_clock::now())                      \
-        << "] "
+        << "] [" << std::this_thread::get_id() << "] "
 #define DLOG(obj, id, x) LOG << "[DEBUG] " << "[" << obj << " " << id << "] " \
-    << x << std::endl;
+    << x << std::endl;                                                        \
+    fnifi::utils::logCv.notify_one();                                         \
+    }
 #define ILOG(obj, id, x) LOG << "[INFO]  " << "[" << obj << " " << id << "] " \
-    << x << std::endl;
+    << x << std::endl;                                                        \
+    fnifi::utils::logCv.notify_one();                                         \
+    }
 #define WLOG(obj, id, x) LOG << "[WARN]  " << "[" << obj << " " << id << "] " \
-    << x << std::endl;
+    << x << std::endl;                                                        \
+    fnifi::utils::logCv.notify_one();                                         \
+    }
 #define ELOG(obj, id, x) LOG << "[ERROR] " << "[" << obj << " " << id << "] " \
-    << x << std::endl;
+    << x << std::endl;                                                        \
+    fnifi::utils::logCv.notify_one();                                         \
+    }
 #else  /* FNIFI_DEBUG */
 #define DLOG(obj, id, x)
 #define ILOG(obj, id, x)
@@ -47,6 +62,9 @@ bool operator>(const timespec& lhs, const timespec& rhs);
 
 
 namespace utils {
+
+static std::mutex logMtx;
+static std::condition_variable logCv;
 
 template <typename T>
 std::ostream& Serialize(std::ostream& os, const T& var);
