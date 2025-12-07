@@ -5,6 +5,7 @@
 #include "fnifi/utils/utils.hpp"
 #include <libsmbclient.h>
 #include <condition_variable>
+#include <mutex>
 
 
 namespace fnifi {
@@ -65,6 +66,7 @@ private:
     SMBCCTX* _ctx;
     std::string _path;
     static std::condition_variable _cv;
+    static std::mutex _mtx;
 };
 
 }  /* namespace connection */

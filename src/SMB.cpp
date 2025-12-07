@@ -19,6 +19,7 @@ using namespace fnifi;
 using namespace fnifi::connection;
 
 std::condition_variable SMB::_cv;
+std::mutex SMB::_mtx;
 
 SMB::SMB(const std::string& server, const std::string& share,
          const std::string& workgroup, const std::string& username,
@@ -413,8 +414,7 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
 }
 
 void SMB::Acquire() {
-    std::mutex mut;
-    std::unique_lock lk(mut);
+    std::unique_lock lk(_mtx);
     _cv.wait(lk, []{ return true; });
 }
 
