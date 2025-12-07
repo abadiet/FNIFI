@@ -143,7 +143,7 @@ std::filesystem::path SyncDirectory::setupFileStream(
 
     if (mkdir) {
         /* create the directories if needed */
-        std::filesystem::create_directories(abspath.parent_path());
+        std::filesystem::create_directories(tabspath.parent_path());
         _conn->createDirs(filepath.parent_path());
     }
 
@@ -168,6 +168,7 @@ void SyncDirectory::remove(const std::filesystem::path& filepath) const {
 
 void SyncDirectory::createDirs(const std::filesystem::path& filepath) const {
     std::filesystem::create_directories(_path / filepath);
+    _conn->createDirs(filepath.parent_path());
 }
 
 bool SyncDirectory::pull(const std::filesystem::path& abspath,
