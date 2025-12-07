@@ -26,6 +26,7 @@ public:
      * @warning use only if non associated to a FNIFI instance
      */
     Collection(Collection&& other) noexcept;
+    Collection(const Collection& other);
     ~Collection() override;
     void index(
         std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,

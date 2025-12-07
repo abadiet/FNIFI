@@ -48,6 +48,21 @@ Collection::Collection(Collection&& other) noexcept
     _previewsMkdir(other._previewsMkdir)
 {}
 
+Collection::Collection(const Collection& other)
+    : _files(),
+    _indexingConn(other._indexingConn),
+    _storing(other._storing),
+    _storingPath(other._storingPath),
+    _mapping(std::make_unique<utils::SyncDirectory::FileStream>
+             (_storing, _storingPath / MAPPING_FILE)),
+    _filepaths(std::make_unique<utils::SyncDirectory::FileStream>
+               (_storing, _storingPath / FILEPATHS_FILE)),
+    _info(std::make_unique<utils::SyncDirectory::FileStream>
+          (_storing, _storingPath / INFO_FILE)),
+    _availableIds(),
+    _previewsMkdir(other._previewsMkdir)
+{}
+
 Collection::~Collection() {
     if (_mapping->is_open()) {
         _mapping->close();
