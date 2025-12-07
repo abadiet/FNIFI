@@ -84,6 +84,10 @@ bool Local::download(const std::filesystem::path& from,
 {
     DLOG("Local", this, "Download from " << from << " to " << to)
 
+    if (!std::filesystem::exists(from)) {
+        return false;
+    }
+
     std::filesystem::copy(from, to,
                           std::filesystem::copy_options::overwrite_existing |
                           std::filesystem::copy_options::recursive);
