@@ -76,8 +76,10 @@ FNIFI::FNIFI(utils::SyncDirectory& storing)
     std::srand(static_cast<unsigned int>(std::time({})));
 }
 
-void FNIFI::addCollection(file::Collection& coll) {
-    indexColl(&coll);
+void FNIFI::addCollection(file::Collection& coll, bool index) {
+    if (index) {
+        indexColl(&coll);
+    }
 
     for (const auto& file : coll) {
         _files.insert(&file.second);

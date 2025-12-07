@@ -44,7 +44,7 @@ public:
     };
 
     FNIFI(utils::SyncDirectory& storing);
-    void addCollection(file::Collection& coll);
+    void addCollection(file::Collection& coll, bool index = false);
     void index();
     void defragment();
     void sort(const std::string& expr);
