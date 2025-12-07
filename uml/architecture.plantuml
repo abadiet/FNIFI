@@ -283,6 +283,9 @@ package fnifi {
             -_userdata : struct UserData
             -_ctx : SMBCCTX*
             -_path : std::string
+            -{static} _cv : std::condition_variable
+            -{static} Acquire()
+            -{static} Release()
             +SMB(addr : const std::string&, user : const std::string&,
             pwd : const std::string&)
             +connect()
