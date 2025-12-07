@@ -18,26 +18,30 @@
 /* TODO: using mutex for logs can lead to some serious blocking situations */
 #define LOG                                                                   \
     {                                                                         \
-    std::unique_lock lk(fnifi::utils::logMtx);                                \
-    fnifi::utils::logCv.wait(lk, []{ return true; });                         \
+    std::unique_lock logLk(fnifi::utils::logMtx);                             \
+    fnifi::utils::logCv.wait(logLk, []{ return true; });                      \
     std::clog << "["                                                          \
         << std::format("{:%Y-%m-%d %H:%M:%S}",                                \
                        std::chrono::system_clock::now())                      \
         << "] [" << std::this_thread::get_id() << "] "
 #define DLOG(obj, id, x) LOG << "[DEBUG] " << "[" << obj << " " << id << "] " \
     << x << std::endl;                                                        \
+    logLk.unlock();                                                           \
     fnifi::utils::logCv.notify_one();                                         \
     }
 #define ILOG(obj, id, x) LOG << "[INFO]  " << "[" << obj << " " << id << "] " \
     << x << std::endl;                                                        \
+    logLk.unlock();                                                           \
     fnifi::utils::logCv.notify_one();                                         \
     }
 #define WLOG(obj, id, x) LOG << "[WARN]  " << "[" << obj << " " << id << "] " \
     << x << std::endl;                                                        \
+    logLk.unlock();                                                           \
     fnifi::utils::logCv.notify_one();                                         \
     }
 #define ELOG(obj, id, x) LOG << "[ERROR] " << "[" << obj << " " << id << "] " \
     << x << std::endl;                                                        \
+    logLk.unlock();                                                           \
     fnifi::utils::logCv.notify_one();                                         \
     }
 #else  /* FNIFI_DEBUG */

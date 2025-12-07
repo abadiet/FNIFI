@@ -285,8 +285,6 @@ package fnifi {
             -_path : std::string
             -{static} _cv : std::condition_variable
             -{static} _mtx : std::mutex
-            -{static} Acquire()
-            -{static} Release()
             +SMB(addr : const std::string&, user : const std::string&,
             pwd : const std::string&)
             +connect()

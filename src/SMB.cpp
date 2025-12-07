@@ -14,6 +14,13 @@
 
 #define BUFFER_SZ 4096
 
+#define ACQUIRE                                                               \
+    std::unique_lock lk(_mtx);                                                \
+    _cv.wait(lk, []{ return true; });
+#define RELEASE                                                               \
+    lk.unlock();                                                              \
+    _cv.notify_one();
+
 
 using namespace fnifi;
 using namespace fnifi::connection;
@@ -53,7 +60,7 @@ void SMB::connect() {
         return;
     }
 
-    Acquire();
+    ACQUIRE
 
     _ctx = smbc_new_context();
     if (!_ctx) {
@@ -72,19 +79,19 @@ void SMB::connect() {
         throw std::runtime_error(msg);
     }
 
-    Release();
+    RELEASE
 
     /* TODO: check if connected */
 }
 
 void SMB::disconnect(bool aggresive) {
-    Acquire();
+    ACQUIRE
 
     if (_ctx) {
         smbc_free_context(_ctx, aggresive);
     }
 
-    Release();
+    RELEASE
 }
 
 DirectoryIterator SMB::iterate(const std::filesystem::path& path,
@@ -94,7 +101,7 @@ DirectoryIterator SMB::iterate(const std::filesystem::path& path,
 
     const auto fullpath = _path + path.string();
 
-    Acquire();
+    ACQUIRE
 
     auto rootdir = smbc_getFunctionOpendir(_ctx)(_ctx, fullpath.c_str());
     if (!rootdir) {
@@ -102,12 +109,12 @@ DirectoryIterator SMB::iterate(const std::filesystem::path& path,
              << ": will return an empty iterator. From errno: "
              << strerror(errno))
 
-        Release();
+        RELEASE
 
         return DirectoryIterator();
     }
 
-    Release();
+    RELEASE
 
     NextEntryData data = {this, recursive, files, folders, {{rootdir, path}}};
     DirectoryIterator iter(&data, nextEntry);
@@ -124,12 +131,12 @@ bool SMB::exists(const std::filesystem::path& filepath) {
     struct stat filestat;
     const auto path = _path + filepath.string();
 
-    Acquire();
+    ACQUIRE
 
     const auto res = (smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &filestat)
         == 0);
 
-    Release();
+    RELEASE
 
     return res;
 }
@@ -140,7 +147,7 @@ struct stat SMB::getStats(const std::filesystem::path& filepath) {
     struct stat fileStat;
     const auto path = _path + filepath.string();
 
-    Acquire();
+    ACQUIRE
 
     if (smbc_getFunctionStat(_ctx)(_ctx, path.c_str(), &fileStat) != 0) {
         WLOG("SMB", this, "Failed to get the stat of " << path
@@ -149,7 +156,7 @@ struct stat SMB::getStats(const std::filesystem::path& filepath) {
         fileStat.st_size = 0;
     }
 
-    Release();
+    RELEASE
 
     return fileStat;
 }
@@ -160,7 +167,7 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
     fileBuf_t res;
     const auto path = _path + filepath.string();
 
-    Acquire();
+    ACQUIRE
 
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_RDONLY, 0);
     if (!file) {
@@ -168,7 +175,7 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
              << ": will return an empty buffer. From errno: "
              << strerror(errno))
 
-        Release();
+        RELEASE
 
         return res;
     }
@@ -190,7 +197,7 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
              << strerror(errno))
     }
 
-    Release();
+    RELEASE
 
     return res;
 }
@@ -201,7 +208,7 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
 
     const auto path = _path + filepath.string();
 
-    Acquire();
+    ACQUIRE
 
     auto file = smbc_getFunctionOpen(_ctx)(_ctx, path.c_str(), O_WRONLY |
                                            O_TRUNC | O_CREAT, 0);
@@ -209,7 +216,7 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
         WLOG("SMB", this, "Failed to open " << path << ". From errno: "
              << strerror(errno))
 
-        Release();
+        RELEASE
 
         return;
     }
@@ -228,7 +235,7 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
              << strerror(errno))
     }
 
-    Release();
+    RELEASE
 }
 
 bool SMB::download(const std::filesystem::path& from,
@@ -278,14 +285,14 @@ void SMB::remove(const std::filesystem::path& filepath) {
 
     const auto path = _path + filepath.string();
 
-    Acquire();
+    ACQUIRE
 
     if (smbc_getFunctionUnlink(_ctx)(_ctx, path.c_str()) != 0) {
         WLOG("SMB", this, "Failed to remove " << path << ". From errno: "
              << strerror(errno))
     }
 
-    Release();
+    RELEASE
 }
 
 void SMB::createDirs(const std::filesystem::path& path) {
@@ -293,7 +300,7 @@ void SMB::createDirs(const std::filesystem::path& path) {
 
     std::filesystem::path dirs;
 
-    Acquire();
+    ACQUIRE
 
     for (const auto& dir : path) {
         dirs /= dir;
@@ -305,7 +312,7 @@ void SMB::createDirs(const std::filesystem::path& path) {
         }
     }
 
-    Release();
+    RELEASE
 }
 
 std::string SMB::getName() const {
@@ -340,7 +347,7 @@ void SMB::get_auth_data_with_context_fn(SMBCCTX* c, const char* srv,
 const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
     auto d = reinterpret_cast<NextEntryData*>(data);
 
-    Acquire();
+    ACQUIRE
 
     auto entry = smbc_getFunctionReaddirPlus(d->self->_ctx)(
         d->self->_ctx, d->dirs.back().smb);
@@ -366,14 +373,14 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
 
             if (d->dirs.size() > 0) {
 
-                Release();
+                RELEASE
 
                 /* this was not the root dir */
                 return nextEntry(data, absname);
             }
         }
 
-        Release();
+        RELEASE
 
         /* the process iterated over every single files */
         return nullptr;
@@ -392,7 +399,7 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
                  << ": will ignore this directory. From errno: "
                  << strerror(errno))
 
-            Release();
+            RELEASE
 
             return nextEntry(data, absname);
         }
@@ -401,25 +408,16 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
 
         if (!d->folders) {
 
-            Release();
+            RELEASE
 
             /* we do not care of folders */
             return nextEntry(data, absname);
         }
     }
 
-    Release();
+    RELEASE
 
     return entry;
-}
-
-void SMB::Acquire() {
-    std::unique_lock lk(_mtx);
-    _cv.wait(lk, []{ return true; });
-}
-
-void SMB::Release() {
-    _cv.notify_one();
 }
 
 /*

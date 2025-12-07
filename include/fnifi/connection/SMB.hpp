@@ -60,8 +60,6 @@ private:
                                               int wglen, char* un, int unlen,
                                               char* pw, int pwlen);
     static const libsmb_file_info* nextEntry(void* data, std::string& absname);
-    static void Acquire();
-    static void Release();
 
     SMBCCTX* _ctx;
     std::string _path;
