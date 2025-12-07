@@ -166,9 +166,9 @@ void SyncDirectory::remove(const std::filesystem::path& filepath) const {
     std::filesystem::remove(_path / filepath);
 }
 
-void SyncDirectory::createDirs(const std::filesystem::path& filepath) const {
-    std::filesystem::create_directories(_path / filepath);
-    _conn->createDirs(filepath.parent_path());
+void SyncDirectory::createDirs(const std::filesystem::path& dirpath) const {
+    std::filesystem::create_directories(_path / dirpath);
+    _conn->createDirs(dirpath);
 }
 
 bool SyncDirectory::pull(const std::filesystem::path& abspath,

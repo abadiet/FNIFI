@@ -85,7 +85,7 @@ package fnifi {
             +exists(filepath : const std::filesystem::path&) : bool
             +absolute(filepath : const std::filesystem::path&) : std::filesystem::path
             +remove(filepath : const std::filesystem::path&)
-            +createDirs(filepath : const std::filesystem::path&)
+            +createDirs(dirpath : const std::filesystem::path&)
         }
     }
 
