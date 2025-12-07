@@ -27,7 +27,7 @@ Collection::Collection(connection::IConnection* indexingConn,
     _filepaths(std::make_unique<utils::SyncDirectory::FileStream>
                (_storing, _storingPath / FILEPATHS_FILE)),
     _info(std::make_unique<utils::SyncDirectory::FileStream>
-          (_storing, _storingPath / INFO_FILE)), _previewsMkdir(true)
+          (_storing, _storingPath / INFO_FILE))
 {
     DLOG("Collection", this, "Instanciation for IConnection " << indexingConn
          << " and SyncDirectory " << &storing)
@@ -49,6 +49,9 @@ Collection::Collection(connection::IConnection* indexingConn,
                                  _mapping->getPath().string());
     }
     _mapping->clear();
+
+    /* create the previews directory if needed */
+    _storing.createDirs(_storingPath / PREVIEW_DIRNAME);
 }
 
 Collection::Collection(Collection&& other) noexcept
@@ -62,8 +65,7 @@ Collection::Collection(Collection&& other) noexcept
                (_storing, _storingPath / FILEPATHS_FILE)),
     _info(std::make_unique<utils::SyncDirectory::FileStream>
           (_storing, _storingPath / INFO_FILE)),
-    _availableIds(std::move(other._availableIds)),
-    _previewsMkdir(other._previewsMkdir)
+    _availableIds(std::move(other._availableIds))
 {
     for (auto& file : _files) {
         file.second.setHelper(this);
@@ -321,12 +323,7 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     }
 
     /* the file did not exists and has to be created */
-    auto file = _storing.open(filepath, true, _previewsMkdir);
-    if (_previewsMkdir) {
-        /* Optimization: assuming the dirs will not be removed during the
-         * lifetime of the program. Avoid a lot of unecessary calls to mkdir */
-        _previewsMkdir = false;
-    }
+    auto file = _storing.open(filepath, true, false);
 
     const auto original = read(id);
 

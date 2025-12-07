@@ -85,6 +85,7 @@ package fnifi {
             +exists(filepath : const std::filesystem::path&) : bool
             +absolute(filepath : const std::filesystem::path&) : std::filesystem::path
             +remove(filepath : const std::filesystem::path&)
+            +createDirs(filepath : const std::filesystem::path&)
         }
     }
 
@@ -185,7 +186,6 @@ package fnifi {
             -_filepaths : std::unique_ptr<utils::SyncDirectory::FileStream>
             -_info : std::unique_ptr<utils::SyncDirectory::FileStream>
             -_availableIds : std::unordered_set<filedId_t>
-            -_previewsMkdir : bool
             -{static} GetKind(buf : const fileBuf_t&) : Kind
             +Collection(indexingConn : IConnection*, storing : const utils::SyncDirectory&)
             +Collection(other : Collection&&)

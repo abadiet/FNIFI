@@ -66,7 +66,6 @@ private:
     std::unique_ptr<utils::SyncDirectory::FileStream> _filepaths;
     std::unique_ptr<utils::SyncDirectory::FileStream> _info;
     std::unordered_set<fileId_t> _availableIds;
-    bool _previewsMkdir;
 };
 
 }  /* namespace file */
