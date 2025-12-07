@@ -338,7 +338,12 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
                     break;
                 }
                 cv::Mat res;
-                cv::resize(img, res, cv::Size(128, 128));
+                auto ratio = 256.0f / static_cast<float>(img.cols);
+                if (ratio > 1.0f) {
+                    ratio = 1.0f;
+                }
+                cv::resize(img, res, cv::Size(256,
+                    static_cast<int>(ratio * static_cast<float>(img.rows))));
                 fileBuf_t buffer;
                 cv::imencode(".jpg", res, buffer,
                              {cv::IMWRITE_JPEG_QUALITY, 70});
