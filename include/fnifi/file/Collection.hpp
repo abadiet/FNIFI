@@ -33,9 +33,9 @@ public:
         std::unordered_set<file::File*>& modified);
     void defragment();
     std::string getFilePath(fileId_t id) override;
+    std::string getLocalPreviewFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
     Kind getKind(fileId_t id) override;
-    fileBuf_t preview(fileId_t id) override;
     fileBuf_t read(fileId_t id) override;
     std::string getName() const override;
     std::unordered_map<fileId_t, File>::const_iterator begin() const;
@@ -56,6 +56,7 @@ private:
     };
 
     static Kind GetKind(const fileBuf_t& buf);
+    void removePreviewFile(fileId_t id) const;
 
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;

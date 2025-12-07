@@ -28,6 +28,10 @@ std::string File::getPath() const {
     return _helper->getFilePath(_id);
 }
 
+std::string File::getLocalPreviewPath() const {
+    return _helper->getLocalPreviewFilePath(_id);
+}
+
 struct stat File::getStats() const {
     return _helper->getStats(_id);
 }
@@ -111,10 +115,6 @@ std::ostream& File::getMetadata(std::ostream& os, expression::Kind type,
     }
 
     return os;
-}
-
-fileBuf_t File::preview() const {
-    return _helper->preview(_id);
 }
 
 fileBuf_t File::read() const {

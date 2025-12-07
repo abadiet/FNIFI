@@ -82,6 +82,9 @@ package fnifi {
             +SyncDirectory(conn : const IConnection*, path : const std::string&)
             +open(filepath : const std::filesystem::path&, ate : bool := false,
             mkdir : bool := true) : FileStream
+            +exists(filepath : const std::filesystem::path&) : bool
+            +absolute(filepath : const std::filesystem::path&) : std::filesystem::path
+            +remove(filepath : const std::filesystem::path&)
         }
     }
 
@@ -144,9 +147,9 @@ package fnifi {
 
         interface IFileHelper {
             +getFilePath(id : fileId_t) : std::string
+            +getLocalPreviewFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +getKind(id : fileId_t) : Kind
-            +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +getName() : std::string
         }
@@ -160,11 +163,11 @@ package fnifi {
             +operator==(other : const File&) : bool
             +getId() : fileId_t
             +getPath() : std::string
+            +getLocalPreviewPath() : std::string
             +getStats() : struct stat
             +getKind() : Kind
             +getMetadata(os : std::ostream&, type : expression::Kind,
             key : const std::string&) : std::ostream&
-            +preview() : fileBuf_t
             +read() : fileBuf_t
             +setSortingScore(score : expr_t)
             +setIsFilteredOut(isFilteredOut : bool)
@@ -191,9 +194,9 @@ package fnifi {
             modified : std::unordered_set<const file::File*>&)
             +defragment()
             +getFilePath(id : fileId_t) : std::string
+            +getLocalPreviewFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +getKind(id : fileId_t) : Kind
-            +preview(id : fileId_t) : fileBuf_t
             +read(id : fileId_t) : fileBuf_t
             +getName() : std::string
             +begin() : std::unordered_map<fileId_t, File>::const_iterator
@@ -201,7 +204,7 @@ package fnifi {
             +begin() : std::unordered_map<fileId_t, File>::iterator
             +end() : std::unordered_map<fileId_t, File>::iterator
             +size() : size_t
-            -getPreviewFilePath(id : fileId_t) : std::string
+            -removePreviewFile(fileId_t id)
         }
     }
 

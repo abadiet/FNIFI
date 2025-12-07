@@ -113,10 +113,9 @@ void Collection::index(
         /* optimization: look for stat, if none, deduced the file does
          * not exists (avoid an additional call to IConnection::exists */
         const auto fileStat = it->second.getStats();
+        const auto id = it->second.getId();
         if (fileStat.st_size == 0) {
             /* the file has been remove */
-            const auto id = it->second.getId();
-
             ILOG("Collection", this, "File at \"" << path << "\" has been "
                  "removed")
 
@@ -134,6 +133,8 @@ void Collection::index(
             _filepaths->write(placeholderPath.data(),
                              std::streamsize(placeholderPath.size()));
 
+            removePreviewFile(id);
+
             _availableIds.insert(id);
             removed.insert({&it->second, id});
             it = _files.erase(it);
@@ -142,6 +143,8 @@ void Collection::index(
 
                 ILOG("Collection", this, "File at \"" << path << "\" has been "
                      "modified")
+
+                removePreviewFile(id);
 
                 /* the file has changed */
                 modified.insert(&it->second);
@@ -303,6 +306,59 @@ std::string Collection::getFilePath(fileId_t id) {
     return path;
 }
 
+std::string Collection::getLocalPreviewFilePath(fileId_t id) {
+    const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);
+    const auto abspath = _storing.absolute(filepath);
+
+    if (_storing.exists(filepath)) {
+        /* the preview file exists */
+        return abspath.string();
+    }
+
+    /* the file did not exists and has to be created */
+    auto file = _storing.open(filepath, true, _previewsMkdir);
+    if (_previewsMkdir) {
+        /* Optimization: assuming the dirs will not be removed during the
+         * lifetime of the program. Avoid a lot of unecessary calls to mkdir */
+        _previewsMkdir = false;
+    }
+
+    const auto original = read(id);
+
+    const auto type = GetKind(original);
+    switch (type) {
+        case JPEG:
+        case PNG:
+            {
+                const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
+                if (img.empty()) {
+                    /* failed to decode image data */
+                    break;
+                }
+                cv::Mat res;
+                cv::resize(img, res, cv::Size(128, 128));
+                fileBuf_t buffer;
+                cv::imencode(".jpg", res, buffer,
+                             {cv::IMWRITE_JPEG_QUALITY, 70});
+                file.write(reinterpret_cast<const char*>(buffer.data()),
+                           std::streamsize(buffer.size()));
+                file.push();
+                file.close();
+
+                return abspath;
+            }
+        case UNKNOWN:
+            /* cannot handle this file type: set the default preview */
+            break;
+    }
+
+    file.put(DEFAULT_PREVIEW_CHAR);
+    file.push();
+    file.close();
+
+    return abspath;
+}
+
 struct stat Collection::getStats(fileId_t id) {
     const auto filepath = getFilePath(id);
     return _indexingConn->getStats(filepath);
@@ -316,64 +372,6 @@ Kind Collection::getKind(fileId_t id) {
 fileBuf_t Collection::read(fileId_t id) {
     const auto filepath = getFilePath(id);
     return _indexingConn->read(filepath);
-}
-
-fileBuf_t Collection::preview(fileId_t id) {
-    const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);
-
-    auto file = _storing.open(filepath, true, _previewsMkdir);
-    if (_previewsMkdir) {
-        /* Optimization: assuming the dirs will not be removed during the
-         * lifetime of the program. Avoid a lot of unecessary calls to mkdir */
-        _previewsMkdir = false;
-    }
-
-    const auto sz = file.tellg();
-    if (sz == 0) {
-        /* the file did not exists and has to be created */
-        const auto original = read(id);
-
-        const auto type = GetKind(original);
-        switch (type) {
-            case JPEG:
-            case PNG:
-                {
-                    const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
-                    if (img.empty()) {
-                        /* failed to decode image data */
-                        break;
-                    }
-                    cv::Mat res;
-                    cv::resize(img, res, cv::Size(128, 128));
-                    fileBuf_t buffer;
-                    cv::imencode(".jpg", res, buffer,
-                                 {cv::IMWRITE_JPEG_QUALITY, 70});
-                    file.write(reinterpret_cast<const char*>(buffer.data()),
-                               std::streamsize(buffer.size()));
-                    file.push();
-                    file.close();
-                    return buffer;
-                }
-            case UNKNOWN:
-                /* cannot handle this file type: set the default preview */
-                break;
-        }
-
-        file.put(DEFAULT_PREVIEW_CHAR);
-        file.push();
-        file.close();
-        return {};
-    }
-
-    if (sz == 1) {
-        /* cannot handle this file type */
-        return {};
-    }
-
-    file.seekg(0);
-    const fileBuf_t buf((std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>());
-    return buf;
 }
 
 std::unordered_map<fileId_t, File>::const_iterator Collection::begin() const {
@@ -410,4 +408,13 @@ Kind Collection::GetKind(const fileBuf_t& buf) {
         return Kind::PNG;
     }
     return Kind::UNKNOWN;
+}
+
+void Collection::removePreviewFile(fileId_t id) const {
+    const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);
+
+    if (_storing.exists(filepath)) {
+        /* the preview file exists */
+        _storing.remove(filepath);
+    }
 }

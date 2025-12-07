@@ -24,11 +24,11 @@ public:
     bool operator==(const File& other) const;
     fileId_t getId() const;
     std::string getPath() const;
+    std::string getLocalPreviewPath() const;
     struct stat getStats() const;
     Kind getKind();
     std::ostream& getMetadata(std::ostream& os, expression::Kind type,
                               const std::string& key) const;
-    fileBuf_t preview() const;
     fileBuf_t read() const;
     void setSortingScore(expr_t score);
     expr_t getSortingScore() const;

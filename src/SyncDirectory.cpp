@@ -156,6 +156,16 @@ bool SyncDirectory::exists(const std::filesystem::path& filepath) const {
     return std::filesystem::exists(_path / filepath);
 }
 
+std::filesystem::path SyncDirectory::absolute(
+    const std::filesystem::path& filepath) const
+{
+    return _path / filepath;
+}
+
+void SyncDirectory::remove(const std::filesystem::path& filepath) const {
+    std::filesystem::remove(_path / filepath);
+}
+
 bool SyncDirectory::pull(const std::filesystem::path& abspath,
                          const std::filesystem::path& relapath) const
 {

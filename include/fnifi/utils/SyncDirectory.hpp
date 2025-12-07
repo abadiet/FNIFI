@@ -42,6 +42,9 @@ public:
     FileStream open(const std::filesystem::path& filepath, bool ate = false,
                     bool mkdir = true) const;
     bool exists(const std::filesystem::path& filepath) const;
+    std::filesystem::path absolute(const std::filesystem::path& filepath)
+        const;
+    void remove(const std::filesystem::path& filepath) const;
 
 private:
     std::filesystem::path setupFileStream(
