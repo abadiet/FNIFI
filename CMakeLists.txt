@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 
 # Options
 option(BUILD_UML "Build UML" OFF)
-option(BUILD_EXAMPLES "Build examples" ON)
+option(BUILD_EXAMPLES "Build examples" OFF)
 option(FNIFI_DEBUG "Debug mode" OFF)
 option(ENABLE_SAMBA
-    "Use Samba for SMB implementation (see https://www.samba.org)" ON)
+    "Use Samba for SMB implementation (see https://www.samba.org)" OFF)
 option(ENABLE_LIBSMB2
     "Use libsmb2 for SMB implementation (see https://github.com/sahlberg/libsmb2/tree/master)"
     OFF)
@@ -75,24 +75,6 @@ if(FNIFI_DEBUG)
     target_compile_options(${PROJECT_NAME} PRIVATE -DFNIFI_DEBUG)
 endif()
 
-# Download/Update librairies if needed
-find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
-    # Update submodules as needed
-    option(GIT_SUBMODULE "Check submodules during build" ON)
-    if(GIT_SUBMODULE)
-        message(STATUS "Downloading git submodules...")
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} submodule update --init
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        )
-    endif()
-endif()
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval")
-    message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE "
-        "was turned off or failed. Please download submodules and try again.")
-endif()
-
 # Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
 find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
@@ -106,6 +88,7 @@ if(ENABLE_SAMBA)
 else()
     if(ENABLE_LIBSMB2)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/libsmb2)
+        target_link_libraries(${PROJECT_NAME} PUBLIC libsmb2)
     endif()
 endif()
 

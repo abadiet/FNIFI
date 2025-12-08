@@ -1,3 +1,6 @@
 [submodule "dependencies/SXEval"]
 	path = dependencies/SXEval
 	url = https://github.com/abadiet/SXEval/
+[submodule "dependencies/libsmb2"]
+	path = dependencies/libsmb2
+	url = https://github.com/sahlberg/libsmb2/
