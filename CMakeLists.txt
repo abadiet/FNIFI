@@ -4,13 +4,48 @@ cmake_minimum_required(VERSION 3.10)
 option(BUILD_UML "Build UML" OFF)
 option(BUILD_EXAMPLES "Build examples" ON)
 option(FNIFI_DEBUG "Debug mode" OFF)
+option(ENABLE_SAMBA
+    "Use Samba for SMB implementation (see https://www.samba.org)" ON)
+option(ENABLE_LIBSMB2
+    "Use libsmb2 for SMB implementation (see https://github.com/sahlberg/libsmb2/tree/master)"
+    OFF)
+if(ENABLE_SAMBA AND ENABLE_LIBSMB2)
+    message(FATAL_ERROR
+        "ENABLE_SAMBA and ENABLE_LIBSMB2 option flags cannot be true both at the same time"
+    )
+endif()
+if(BUILD_EXAMPLES AND NOT (ENABLE_SAMBA OR ENABLE_LIBSMB2))
+    message(FATAL_ERROR
+        "One of ENABLE_SAMBA or ENABLE_LIBSMB2 option flags should be true to compile examples"
+    )
+endif()
 
 # Project
 project(fnifi)
 set(FNIFI_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/DirectoryIterator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/IConnection.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Collection.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Relative.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/FNIFI.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/SyncDirectory.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Local.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/IFileHelper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/File.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/TempFile.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/DiskBacked.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Variable.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Expression.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ConnectionBuilder.cpp)
+if(ENABLE_SAMBA)
+    list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/SMB-Samba.cpp)
+else()
+    if(ENABLE_LIBSMB2)
+        list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/SMB-libsmb2.cpp)
+    endif()
+endif()
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${FNIFI_INCLUDE})
 
@@ -62,10 +97,17 @@ endif()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
 find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
 find_package(OpenCV REQUIRED)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SMBCLIENT REQUIRED IMPORTED_TARGET smbclient)
 target_link_libraries(${PROJECT_NAME} PUBLIC sxeval Exiv2::exiv2lib
-    PkgConfig::SMBCLIENT ${OpenCV_LIBS})
+    ${OpenCV_LIBS})
+if(ENABLE_SAMBA)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SMBCLIENT REQUIRED IMPORTED_TARGET smbclient)
+    target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::SMBCLIENT)
+else()
+    if(ENABLE_LIBSMB2)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/libsmb2)
+    endif()
+endif()
 
 # UML
 if(BUILD_UML)
