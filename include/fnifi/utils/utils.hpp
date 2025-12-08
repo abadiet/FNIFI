@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <ctime>
 #include <format>
 #include <thread>
 #include <condition_variable>
@@ -20,9 +21,10 @@
     {                                                                         \
     std::unique_lock logLk(fnifi::utils::logMtx);                             \
     fnifi::utils::logCv.wait(logLk, []{ return true; });                      \
+    const auto logTm = std::chrono::system_clock::to_time_t(                  \
+        std::chrono::system_clock::now());                                    \
     std::clog << "["                                                          \
-        << std::format("{:%Y-%m-%d %H:%M:%S}",                                \
-                       std::chrono::system_clock::now())                      \
+        << std::put_time(std::localtime(&logTm), "%Y-%m-%d %H:%M:%S")         \
         << "] [" << std::this_thread::get_id() << "] "
 #define DLOG(obj, id, x) LOG << "[DEBUG] " << "[" << obj << " " << id << "] " \
     << x << std::endl;                                                        \
