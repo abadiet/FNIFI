@@ -96,6 +96,8 @@ private:
     const std::string _username;
     const std::string _password;
     bool _connected;
+    static std::condition_variable _cv;
+    static std::mutex _mtx;
 #endif  /* ENABLE_LIBSMB2 */
 
 };

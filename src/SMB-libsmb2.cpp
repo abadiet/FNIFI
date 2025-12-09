@@ -4,9 +4,19 @@
 
 #define BUFFER_SZ 4096
 
+#define ACQUIRE                                                               \
+    std::unique_lock lk(_mtx);                                                \
+    _cv.wait(lk, []{ return true; });
+#define RELEASE                                                               \
+    lk.unlock();                                                              \
+    _cv.notify_one();
+
 
 using namespace fnifi;
 using namespace fnifi::connection;
+
+std::condition_variable SMB::_cv;
+std::mutex SMB::_mtx;
 
 SMB::SMB(const std::string& server, const std::string& share,
          const std::string& username, const std::string& password)
@@ -16,18 +26,30 @@ SMB::SMB(const std::string& server, const std::string& share,
     DLOG("SMB", this, "Instanciation for server \"" << server << "\" and share"
          " \"" << share << "\"")
 
+    ACQUIRE
+
     _ctx = smb2_init_context();
     if (!_ctx) {
+
+        RELEASE
+
         const auto msg("Cannot setup the SMB context");
         ELOG("SMB", this, msg)
         throw std::runtime_error(msg);
     }
+
+    RELEASE
 }
 
 SMB::~SMB() {
     disconnect();
+
+    ACQUIRE
+
     smb2_close_context(_ctx);
     smb2_destroy_context(_ctx);
+
+    RELEASE
 }
 
 void SMB::connect() {
@@ -37,15 +59,22 @@ void SMB::connect() {
         return;
     }
 
+    ACQUIRE
+
     smb2_set_password(_ctx, _password.c_str());
     const auto res = smb2_connect_share(_ctx, _server.c_str(), _share.c_str(),
                                         _username.c_str());
     if (res) {
         std::ostringstream msg;
         msg << "Connection failed: " << smb2_get_error(_ctx);
+
+        RELEASE
+
         ELOG("SMB", this, msg.str())
         throw std::runtime_error(msg.str());
     }
+
+    RELEASE
 
     _connected = true;
 
@@ -53,12 +82,16 @@ void SMB::connect() {
 }
 
 void SMB::disconnect(bool aggresive) {
+    ACQUIRE
+
     if (smb2_context_active(_ctx)) { /* TODO: return 0 if active? */
         const auto res = smb2_disconnect_share(_ctx);
         if (res) {
             WLOG("SMB", this, "Disonnection failed: " << smb2_get_error(_ctx))
         }
     }
+
+    RELEASE
 
     _connected = false;
 
@@ -70,13 +103,20 @@ DirectoryIterator SMB::iterate(const std::filesystem::path& path,
 {
     DLOG("SMB", this, "Iteration over path " << path)
 
+    ACQUIRE
+
     auto rootdir = smb2_opendir(_ctx, path.c_str());
     if (!rootdir) {
         WLOG("SMB", this, "Failed to open the directory " << path
              << ": will return an empty iterator. More: "
              << smb2_get_error(_ctx))
+
+        RELEASE
+
         return DirectoryIterator();
     }
+
+    RELEASE
 
     NextEntryData data = {this, recursive, files, folders, {{rootdir, path}}};
     DirectoryIterator iter(&data, nextEntry);
@@ -92,7 +132,13 @@ bool SMB::exists(const std::filesystem::path& filepath) {
     /* TODO: a bit dirty */
     smb2_stat_64 fileStat;
 
-    return (smb2_stat(_ctx, filepath.c_str(), &fileStat) == 0);
+    ACQUIRE
+
+    const auto res = (smb2_stat(_ctx, filepath.c_str(), &fileStat) == 0);
+
+    RELEASE
+
+    return res;
 }
 
 struct stat SMB::getStats(const std::filesystem::path& filepath) {
@@ -100,12 +146,16 @@ struct stat SMB::getStats(const std::filesystem::path& filepath) {
 
     smb2_stat_64 fileStat;
 
+    ACQUIRE
+
     if (smb2_stat(_ctx, filepath.c_str(), &fileStat) != 0) {
         WLOG("SMB", this, "Failed to get the stat of " << filepath
              << ": will return the default instanciated stat. More: "
              << smb2_get_error(_ctx))
         fileStat.smb2_size = 0;
     }
+
+    RELEASE
 
     struct stat res;
     res.st_nlink = static_cast<nlink_t>(fileStat.smb2_nlink);
@@ -131,11 +181,16 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
 
     fileBuf_t res;
 
+    ACQUIRE
+
     auto file = smb2_open(_ctx, filepath.c_str(), O_RDONLY);
     if (!file) {
         WLOG("SMB", this, "Failed to open " << filepath
              << ": will return an empty buffer. More: "
              << smb2_get_error(_ctx))
+
+        RELEASE
+
         return res;
     }
 
@@ -156,6 +211,8 @@ fileBuf_t SMB::read(const std::filesystem::path& filepath) {
              << smb2_get_error(_ctx))
     }
 
+    RELEASE
+
     return res;
 }
 
@@ -163,11 +220,16 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
 {
     DLOG("SMB", this, "Write to file " << filepath)
 
+    ACQUIRE
+
     auto file = smb2_open(_ctx, filepath.c_str(),  O_WRONLY | O_TRUNC |
                           O_CREAT);
     if (!file) {
         WLOG("SMB", this, "Failed to open " << filepath
              << ". More: " << smb2_get_error(_ctx))
+
+        RELEASE
+
         return;
     }
 
@@ -184,6 +246,8 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
         WLOG("SMB", this, "Failed to close " << filepath << ". More: "
              << smb2_get_error(_ctx))
     }
+
+    RELEASE
 }
 
 bool SMB::download(const std::filesystem::path& from,
@@ -231,16 +295,22 @@ bool SMB::upload(const std::filesystem::path& from,
 void SMB::remove(const std::filesystem::path& filepath) {
     DLOG("SMB", this, "Remove file " << filepath)
 
+    ACQUIRE
+
     if (smb2_unlink(_ctx, filepath.c_str()) != 0) {
         WLOG("SMB", this, "Failed to remove " << filepath << ". More: "
              << smb2_get_error(_ctx))
     }
+
+    RELEASE
 }
 
 void SMB::createDirs(const std::filesystem::path& path) {
     DLOG("SMB", this, "Create directories for path " << path)
 
     std::filesystem::path dirs;
+
+    ACQUIRE
 
     for (const auto& dir : path) {
         dirs /= dir;
@@ -250,6 +320,8 @@ void SMB::createDirs(const std::filesystem::path& path) {
                  << ". More: " << smb2_get_error(_ctx))
         }
     }
+
+    RELEASE
 }
 
 std::string SMB::getName() const {
@@ -264,6 +336,8 @@ std::string SMB::getName() const {
 
 const smb2dirent* SMB::nextEntry(void* data, std::string& absname) {
     auto d = reinterpret_cast<NextEntryData*>(data);
+
+    ACQUIRE
 
     auto entry = smb2_readdir(d->self->_ctx, d->dirs.back().smb);
     while (
@@ -286,15 +360,19 @@ const smb2dirent* SMB::nextEntry(void* data, std::string& absname) {
             d->dirs.pop_back();
 
             if (d->dirs.size() > 0) {
+
+                RELEASE
+
                 /* this was not the root dir */
                 return nextEntry(data, absname);
             }
         }
+
+        RELEASE
+
         /* the process iterated over every single files */
         return nullptr;
     }
-
-    std::cout << entry->name << std::endl;
 
     /* fix entry's name to be absolute */
     absname = d->dirs.back().path / entry->name;
@@ -306,16 +384,24 @@ const smb2dirent* SMB::nextEntry(void* data, std::string& absname) {
             WLOG("SMB", d->self, "Failed to open the directory " << absname
                  << ": will ignore this directory. More: "
                  << smb2_get_error(d->self->_ctx))
+
+            RELEASE
+
             return nextEntry(data, absname);
         }
 
         d->dirs.push_back({dir, absname});
 
         if (!d->folders) {
+
+            RELEASE
+
             /* we do not care of folders */
             return nextEntry(data, absname);
         }
     }
+
+    RELEASE
 
     return entry;
 }
