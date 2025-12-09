@@ -6,7 +6,6 @@
 #include "fnifi/file/Kind.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <sys/stat.h>
-#include <exiv2/exiv2.hpp>
 #include <string>
 #include <ostream>
 
