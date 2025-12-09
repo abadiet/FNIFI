@@ -230,6 +230,7 @@ package fnifi {
 
         class DirectoryIterator {
             -_entries : std::vector<Entry, EntryHash>
+            -addEntry(entry : const std::filesystem::path&, files : boll, folders : bool)
             +DirectoryIterator(its : std::filesystem::recursive_directory_iterator,
             bool files, bool folders)
             +DirectoryIterator(its : std::filesystem::directory_iterator,
@@ -240,8 +241,6 @@ package fnifi {
             +begin() : std::vector<Entry, EntryHash>::const_iterator
             +end() : std::vector<Entry, EntryHash>::const_iterator
             +size() : size_t
-            -{static} get_auth_data_with_context_fn(...)
-            -{static} nextEntry(data : void*, absname : std::string&) : const libsmb_file_info*
         }
 
         interface IConnection {
@@ -280,13 +279,9 @@ package fnifi {
         }
 
         class SMB extends IConnection {
-            -_userdata : struct UserData
-            -_ctx : SMBCCTX*
-            -_path : std::string
-            -{static} _cv : std::condition_variable
-            -{static} _mtx : std::mutex
-            +SMB(addr : const std::string&, user : const std::string&,
-            pwd : const std::string&)
+            -...
+            +SMB(server : const std::string&, share : const std::string&, workgroup : const std::string&,
+            username : const std::string&, password : const std::string&)
             +connect()
             +disconnect(force : bool := false)
             +iterate(path : std::filesystem::path&, recursive : bool := true,

@@ -47,6 +47,8 @@ DirectoryIterator::DirectoryIterator(
 
     ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
 }
+
+#ifdef ENABLE_SAMBA
 DirectoryIterator::DirectoryIterator(void* data, const std::function<
     const libsmb_file_info*(void*, std::string&)>& nextEntry)
 {
@@ -61,6 +63,27 @@ DirectoryIterator::DirectoryIterator(void* data, const std::function<
 
     ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
 }
+#endif  /* ENABLE_SAMBA */
+
+#ifdef ENABLE_LIBSMB2
+DirectoryIterator::DirectoryIterator(void* data, const std::function<
+    const smb2dirent*(void*, std::string&)>& nextEntry)
+{
+    DLOG("DirectoryIterator", this, "Instanciation via SMB callback")
+
+    std::string name;
+    auto entry = nextEntry(data, name);
+    while (entry != nullptr) {
+        _entries.insert({name, {
+            .tv_sec = static_cast<time_t>(entry->st.smb2_ctime),
+            .tv_nsec = static_cast<long>(entry->st.smb2_ctime_nsec),
+        }});
+        entry = nextEntry(data, name);
+    }
+
+    ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
+}
+#endif  /* ENABLE_LIBSMBS2 */
 
 DirectoryIterator::DirectoryIterator(const DirectoryIterator& dirit,
                                      const std::filesystem::path& path)

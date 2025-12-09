@@ -5,8 +5,14 @@
 #include <unordered_set>
 #include <filesystem>
 #include <ctime>
-#include <libsmbclient.h>
 #include <functional>
+#ifdef ENABLE_SAMBA
+#include <libsmbclient.h>
+#endif  /* ENABLE_SAMBA */
+#ifdef ENABLE_LIBSMB2
+#include <smb2/smb2.h>
+#include <smb2/libsmb2.h>
+#endif  /* ENABLE_LIBSMB2 */
 
 
 namespace fnifi {
@@ -33,8 +39,14 @@ public:
         bool files, bool folders);
     DirectoryIterator(const std::filesystem::directory_iterator& entries,
                       bool files, bool folders);
+#ifdef ENABLE_SAMBA
     DirectoryIterator(void* data, const std::function<
                       const libsmb_file_info*(void*,std::string&)>& nextEntry);
+#endif  /* ENABLE_SAMBA */
+#ifdef ENABLE_LIBSMB2
+    DirectoryIterator(void* data, const std::function<
+                      const smb2dirent*(void*,std::string&)>& nextEntry);
+#endif  /* ENABLE_LIBSMB2 */
     DirectoryIterator(const DirectoryIterator& dirit,
                       const std::filesystem::path& path);
     std::unordered_set<Entry, EntryHash>::const_iterator begin() const;

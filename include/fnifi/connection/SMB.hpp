@@ -3,9 +3,17 @@
 
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils/utils.hpp"
+
+#ifdef ENABLE_SAMBA
 #include <libsmbclient.h>
 #include <condition_variable>
 #include <mutex>
+#endif  /* ENABLE_SAMBA */
+
+#ifdef ENABLE_LIBSMB2
+#include <smb2/smb2.h>
+#include <smb2/libsmb2.h>
+#endif  /* ENABLE_LIBSMB2 */
 
 
 namespace fnifi {
@@ -36,6 +44,8 @@ public:
     std::string getName() const override;
 
 private:
+
+#ifdef ENABLE_SAMBA
     struct UserData {
         std::string server;
         std::string share;
@@ -65,6 +75,32 @@ private:
     std::string _path;
     static std::condition_variable _cv;
     static std::mutex _mtx;
+#endif  /* ENABLE_SAMBA */
+
+#ifdef ENABLE_LIBSMB2
+    struct NextEntryData {
+        struct Directory {
+            struct smb2dir* smb;
+            const std::filesystem::path path;
+        };
+        SMB* self;
+        const bool recursive;
+        const bool files;
+        const bool folders;
+        std::vector<Directory> dirs;
+    };
+
+    static const smb2dirent* nextEntry(void* data, std::string& absname);
+
+    struct smb2_context* _ctx;
+    const std::string _server;
+    const std::string _share;
+    const std::string _workgroup;
+    const std::string _username;
+    const std::string _password;
+    bool _connected;
+#endif  /* ENABLE_LIBSMB2 */
+
 };
 
 }  /* namespace connection */

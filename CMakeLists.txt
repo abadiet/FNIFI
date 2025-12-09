@@ -41,16 +41,15 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/DirectoryIterator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ConnectionBuilder.cpp)
 if(ENABLE_SAMBA)
     list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/SMB-Samba.cpp)
-else()
-    if(ENABLE_LIBSMB2)
-        list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/SMB-libsmb2.cpp)
-    endif()
+elseif(ENABLE_LIBSMB2)
+    list(APPEND SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/SMB-libsmb2.cpp)
 endif()
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${FNIFI_INCLUDE})
 
 # Flags
 set(SXEVAL_FLAGS -Wno-deprecated-redundant-constexpr-static-def)
+set(LIBSMB2_FLAGS -Wno-reserved-macro-identifier -Wno-zero-length-array)
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CXX_COMPILER_ID:AppleClang>:-O3 -Wall -Wextra -Werror
     -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion
@@ -63,16 +62,23 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Wunused-exception-parameter -Wcovered-switch-default
     -Wno-c++98-compat -Wno-c++98-compat-pedantic
     -Wno-padded -Wno-switch-default -Wno-unsafe-buffer-usage-in-libc-call
-    -Wno-exit-time-destructors -Wno-global-constructors ${SXEVAL_FLAGS}>
+    -Wno-exit-time-destructors -Wno-global-constructors ${SXEVAL_FLAGS}
+    ${LIBSMB2_FLAGS}>
     $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror -Wfloat-equal
     -Wundef -Wcast-align -Wwrite-strings -Wconversion
     -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
     -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
     -Wimplicit-fallthrough -Wno-padded -Wno-unsafe-buffer-usage-in-libc-call
-    -Wno-exit-time-destructors -Wno-global-constructors ${SXEVAL_FLAGS}>
+    -Wno-exit-time-destructors -Wno-global-constructors ${SXEVAL_FLAGS}
+    ${LIBSMB2_FLAGS}>
 )
 if(FNIFI_DEBUG)
     target_compile_options(${PROJECT_NAME} PRIVATE -DFNIFI_DEBUG)
+endif()
+if(ENABLE_SAMBA)
+    target_compile_options(${PROJECT_NAME} PRIVATE -DENABLE_SAMBA)
+elseif(ENABLE_LIBSMB2)
+    target_compile_options(${PROJECT_NAME} PRIVATE -DENABLE_LIBSMB2)
 endif()
 
 # Libraries
@@ -85,11 +91,10 @@ if(ENABLE_SAMBA)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SMBCLIENT REQUIRED IMPORTED_TARGET smbclient)
     target_link_libraries(${PROJECT_NAME} PUBLIC PkgConfig::SMBCLIENT)
-else()
-    if(ENABLE_LIBSMB2)
-        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/libsmb2)
-        target_link_libraries(${PROJECT_NAME} PUBLIC libsmb2)
-    endif()
+elseif(ENABLE_LIBSMB2)
+    set(ENABLE_LIBKRB5 OFF CACHE BOOL "Disable libkrb5 support")
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/libsmb2)
+    target_link_libraries(${PROJECT_NAME} PUBLIC smb2)
 endif()
 
 # UML

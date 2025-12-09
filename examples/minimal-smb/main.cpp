@@ -46,16 +46,13 @@ int main(int argc, char** argv) {
     fnifi::file::Collection coll(indexingSer, storingLoc);
     fi.addCollection(coll);
 
+    fi.index();
+
     /* Loop over the files */
     std::cout << "Randomly loop over all the files:" << std::endl;
     for (const auto file : fi) {
         std::cout << file->getPath() << std::endl;
-        std::cout << file->getLocalPreviewPath() << std::endl;
     }
-
-    fi.sort("(+ ctime 0)");
-
-    fi.filter("(> ctime 2345678987)");
 
     /* Cleaning */
     fnifi::connection::ConnectionBuilder::Free();
