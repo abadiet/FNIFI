@@ -280,7 +280,7 @@ package fnifi {
 
         class SMB extends IConnection {
             -...
-            +SMB(server : const std::string&, share : const std::string&, workgroup : const std::string&,
+            +SMB(server : const std::string&, share : const std::string&,
             username : const std::string&, password : const std::string&)
             +connect()
             +disconnect(force : bool := false)

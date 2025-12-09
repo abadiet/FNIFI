@@ -9,10 +9,9 @@ using namespace fnifi;
 using namespace fnifi::connection;
 
 SMB::SMB(const std::string& server, const std::string& share,
-         const std::string& workgroup, const std::string& username,
-         const std::string& password)
-: _ctx(nullptr), _server(server), _share(share), _workgroup(workgroup),
-    _username(username), _password(password), _connected(false)
+         const std::string& username, const std::string& password)
+: _ctx(nullptr), _server(server), _share(share), _username(username),
+    _password(password), _connected(false)
 {
     DLOG("SMB", this, "Instanciation for server \"" << server << "\" and share"
          " \"" << share << "\"")

@@ -17,7 +17,6 @@ public:
     static IConnection* GetLocal(const Options& opt);
     static IConnection* GetSMB(const std::string& server,
                                const std::string& share,
-                               const std::string& workgroup,
                                const std::string& username,
                                const std::string& password, const Options& opt
                                );

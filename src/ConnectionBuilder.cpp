@@ -29,18 +29,17 @@ IConnection* ConnectionBuilder::GetLocal(const ConnectionBuilder::Options& opt)
 
 IConnection* ConnectionBuilder::GetSMB(const std::string& server,
                                const std::string& share,
-                               const std::string& workgroup,
                                const std::string& username,
                                const std::string& password,
                                const ConnectionBuilder::Options& opt)
 {
     IConnection* conn;
-    const auto hsh = "SMB" + SEP + server + SEP + share + SEP + workgroup + SEP
-        + username + SEP + password + SEP;
+    const auto hsh = "SMB" + SEP + server + SEP + share + SEP + username + SEP
+        + password + SEP;
     const auto pos = _built.find(hsh);
     if (pos == _built.end()) {
         const auto res = _built.insert({hsh,
-            new SMB(server, share, workgroup, username, password)});
+            new SMB(server, share, username, password)});
         conn = res.first->second;
         conn->connect();
     } else {

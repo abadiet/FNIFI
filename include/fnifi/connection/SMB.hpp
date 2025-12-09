@@ -22,8 +22,7 @@ namespace connection {
 class SMB : virtual public IConnection {
 public:
     SMB(const std::string& server = "127.0.0.1", const std::string& share = "",
-        const std::string& workgroup = "", const std::string& username = "",
-        const std::string& password = "");
+        const std::string& username = "", const std::string& password = "");
     ~SMB() override;
     void connect() override;
     void disconnect(bool force = false) override;
@@ -49,7 +48,6 @@ private:
     struct UserData {
         std::string server;
         std::string share;
-        std::string workgroup;
         std::string username;
         std::string password;
     } _userdata;
@@ -95,7 +93,6 @@ private:
     struct smb2_context* _ctx;
     const std::string _server;
     const std::string _share;
-    const std::string _workgroup;
     const std::string _username;
     const std::string _password;
     bool _connected;

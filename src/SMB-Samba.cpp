@@ -29,9 +29,8 @@ std::condition_variable SMB::_cv;
 std::mutex SMB::_mtx;
 
 SMB::SMB(const std::string& server, const std::string& share,
-         const std::string& workgroup, const std::string& username,
-         const std::string& password)
-: _userdata({server, share, workgroup, username, password}), _ctx(nullptr)
+         const std::string& username, const std::string& password)
+: _userdata({server, share, username, password}), _ctx(nullptr)
 {
     DLOG("SMB", this, "Instanciation for server \"" << server << "\" and share"
          " \"" << share << "\"")
@@ -329,10 +328,6 @@ void SMB::get_auth_data_with_context_fn(SMBCCTX* c, const char* srv,
     if (userdata->server == srv &&
         userdata->share == shr)
     {
-        if (userdata->workgroup != "") {
-            std::strncpy(wg, userdata->workgroup.data(),
-                         static_cast<size_t>(wglen - 1));
-        }
         if (userdata->username != "") {
             std::strncpy(un, userdata->username.data(),
                          static_cast<size_t>(unlen - 1));
