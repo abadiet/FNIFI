@@ -7,8 +7,10 @@ option(FNIFI_DEBUG "Debug mode" OFF)
 option(ENABLE_SAMBA
     "Use Samba for SMB implementation (see https://www.samba.org)" OFF)
 option(ENABLE_LIBSMB2
-    "Use libsmb2 for SMB implementation (see https://github.com/sahlberg/libsmb2/tree/master)"
+    "Use libsmb2 for SMB implementation (see https://github.com/sahlberg/libsmb2)"
     OFF)
+option(ENABLE_OPENCV "Use OpenCV for building preview images" ON)
+option(ENABLE_EXIV2 "Use Exiv2 for metadata exfiltration" ON)
 if(ENABLE_SAMBA AND ENABLE_LIBSMB2)
     message(FATAL_ERROR
         "ENABLE_SAMBA and ENABLE_LIBSMB2 option flags cannot be true both at the same time"
@@ -80,13 +82,24 @@ if(ENABLE_SAMBA)
 elseif(ENABLE_LIBSMB2)
     target_compile_options(${PROJECT_NAME} PRIVATE -DENABLE_LIBSMB2)
 endif()
+if(ENABLE_OPENCV)
+    target_compile_options(${PROJECT_NAME} PRIVATE -DENABLE_OPENCV)
+endif()
+if(ENABLE_EXIV2)
+    target_compile_options(${PROJECT_NAME} PRIVATE -DENABLE_EXIV2)
+endif()
 
 # Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/SXEval)
-find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
-find_package(OpenCV REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC sxeval Exiv2::exiv2lib
-    ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} PUBLIC sxeval)
+if(ENABLE_EXIV2)
+    find_package(exiv2 REQUIRED CONFIG NAMES exiv2)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Exiv2::exiv2lib)
+endif()
+if(ENABLE_OPENCV)
+    find_package(OpenCV REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${OpenCV_LIBS})
+endif()
 if(ENABLE_SAMBA)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SMBCLIENT REQUIRED IMPORTED_TARGET smbclient)

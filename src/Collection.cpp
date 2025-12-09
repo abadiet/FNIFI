@@ -5,7 +5,9 @@
 #include <sys/stat.h>
 #include <ctime>
 #include <cstdio>
+#ifdef ENABLE_OPENCV
 #include <opencv2/opencv.hpp>
+#endif  /* ENABLE_OPENCV */
 
 #define INFO_FILE "info.fnifi"
 #define MAPPING_FILE "mapping.fnifi"
@@ -332,6 +334,7 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
         case JPEG:
         case PNG:
             {
+#ifdef ENABLE_OPENCV
                 const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
                 if (img.empty()) {
                     /* failed to decode image data */
@@ -353,6 +356,12 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
                 file.close();
 
                 return abspath;
+#else  /* ENABLE_OPENCV */
+                WLOG("Collection", this, "The preview for " << abspath
+                    << " cannot be processed as OpenCV is disabled. Returning "
+                    "empty path.")
+                return "";
+#endif  /* ENABLE_OPENCV */
             }
         case UNKNOWN:
             /* cannot handle this file type: set the default preview */

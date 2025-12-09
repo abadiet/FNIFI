@@ -1,5 +1,7 @@
 #include "fnifi/file/File.hpp"
+#ifdef ENABLE_EXIV2
 #include <exiv2/exiv2.hpp>
+#endif  /* ENABLE_EXIV2 */
 
 
 using namespace fnifi;
@@ -58,6 +60,7 @@ std::ostream& File::getMetadata(std::ostream& os, expression::Kind type,
         case expression::EXIF:
         case expression::IPTC:
             {
+#ifdef ENABLE_EXIV2
                 Exiv2::Image::UniquePtr image;
                 try {
                     image = Exiv2::ImageFactory::open(
@@ -106,8 +109,15 @@ std::ostream& File::getMetadata(std::ostream& os, expression::Kind type,
                         /* impossible */
                         break;
                 }
+                break;
+#else  /* ENABLE_OPENCV */
+                std::ostringstream msg;
+                msg << "The metadata \"" << key << "\" cannot be retrieved as "
+                    "Exiv2 is disabledBad Metadata's type";
+                ELOG("File", this, msg.str())
+                throw std::runtime_error(msg.str());
+#endif  /* ENABLE_EXIV2 */
             }
-            break;
         case expression::UNKOWN:
             const auto msg("Bad Metadata's type");
             ELOG("File", this, msg)
