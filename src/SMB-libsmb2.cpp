@@ -164,7 +164,8 @@ void SMB::write(const std::filesystem::path& filepath, const fileBuf_t& buffer)
 {
     DLOG("SMB", this, "Write to file " << filepath)
 
-    auto file = smb2_open(_ctx, filepath.c_str(), O_RDONLY);
+    auto file = smb2_open(_ctx, filepath.c_str(),  O_WRONLY | O_TRUNC |
+                          O_CREAT);
     if (!file) {
         WLOG("SMB", this, "Failed to open " << filepath
              << ". More: " << smb2_get_error(_ctx))
