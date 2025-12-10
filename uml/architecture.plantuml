@@ -13,9 +13,9 @@ package fnifi {
         -_files : fileset_t
         -_toRemove : std::unordered_set<const file::File*>&
         -_storing : const utils::SyncDirectory&
-        -indexColl(coll : file::Collection*)
-        -sortColl(coll : file::Collection*)
-        -filterColl(coll : file::Collection*)
+        -indexColl(coll : file::Collection&)
+        -sortColl(coll : file::Collection&)
+        -filterColl(coll : file::Collection&)
         +FNIFI(storing : const utils::SyncDirectory&)
         +addCollection(colls : std::vector<file::Collection*>&, index : bool := false)
         +index()
@@ -92,6 +92,9 @@ package fnifi {
     package expression {
         abstract DiskBacked {
             -_storedColls : std::unordered_map<std::string, StoredColl>
+            -_keyHash : const std::string
+            -_storing : const utils::SyncDirectory&
+            -_parentDirName : const std::filesystem::path&
             -getValue(file : const file::File*, noCache : bool) : expr_t
             +{static} Uncache(storing : const utils::SyncDirectory&,
             path : const std::filesystem::path&, id : fileId_t)
@@ -99,6 +102,7 @@ package fnifi {
             colls : std::vector<file::Collection*>&, parentDirName : const std::string&)
             +~DiskBacked()
             +get(file : const file::File*, noCache : bool := false) : expr_t
+            +addCollection(coll : const file::Collection&)
             +disableSync(collName : const std::filesystem::path&, pull : bool := true)
             +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
@@ -111,6 +115,7 @@ package fnifi {
             +{static} Uncache(storing : const utils::SyncDirectory&,
             +Expression(expr : const std::string&, storing : const utils::SyncDirectory&,
             colls : const std::vector<file::Collection*>&)
+            +addCollection(coll : const file::Collection&)
             +disableSync(collName : const std::filesystem::path&, pull : bool := true)
             +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
@@ -360,5 +365,6 @@ Relative o--> IConnection : 1..1\n_conn
 DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 Expression *--> Variable : 0..*\n_vars
 DiskBacked *--> SyncDirectory::FileStream : 0..*\n_storedColls
+DiskBacked *--> SyncDirectory : 1..1\n_storing
 
 @enduml

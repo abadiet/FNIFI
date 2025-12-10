@@ -41,6 +41,14 @@ expr_t Expression::getValue(const file::File* file) {
     return _sxeval.execute();
 }
 
+void Expression::addCollection(const file::Collection& coll) {
+    DiskBacked::addCollection(coll);
+
+    for (auto& var : _vars) {
+        var.var->addCollection(coll);
+    }
+}
+
 void Expression::disableSync(const std::string& collName, bool pull) {
     DiskBacked::disableSync(collName, pull);
 

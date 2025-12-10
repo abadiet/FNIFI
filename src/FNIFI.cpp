@@ -78,7 +78,7 @@ FNIFI::FNIFI(utils::SyncDirectory& storing)
 
 void FNIFI::addCollection(file::Collection& coll, bool index) {
     if (index) {
-        indexColl(&coll);
+        indexColl(coll);
     }
 
     for (const auto& file : coll) {
@@ -86,11 +86,13 @@ void FNIFI::addCollection(file::Collection& coll, bool index) {
     }
 
     if (_sortExpr) {
-        sortColl(&coll);
+        _sortExpr->addCollection(coll);
+        sortColl(coll);
     }
 
     if (_filtExpr) {
-        filterColl(&coll);
+        _filtExpr->addCollection(coll);
+        filterColl(coll);
     }
 
     _colls.push_back(&coll);
@@ -109,7 +111,7 @@ void FNIFI::index() {
     DLOG("FNIFI", this, "Indexation")
 
     for (auto& coll : _colls) {
-        indexColl(coll);
+        indexColl(*coll);
     }
 }
 
@@ -120,7 +122,7 @@ void FNIFI::sort(const std::string& expr) {
     _sortExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
-        sortColl(coll);
+        sortColl(*coll);
     }
 }
 
@@ -130,7 +132,7 @@ void FNIFI::filter(const std::string& expr) {
     _filtExpr = std::make_unique<expression::Expression>(expr, _storing,
                                                          _colls);
     for (const auto& coll : _colls) {
-        filterColl(coll);
+        filterColl(*coll);
     }
 }
 
@@ -158,19 +160,19 @@ FNIFI::fileset_t FNIFI::getFiles() const {
     return _files;
 }
 
-void FNIFI::indexColl(file::Collection* coll) {
+void FNIFI::indexColl(file::Collection& coll) {
     std::unordered_set<std::pair<const file::File*, fileId_t>> removed;
     std::unordered_set<const file::File*> added;
     std::unordered_set<file::File*> modified;
 
-    coll->index(removed, added, modified);
+    coll.index(removed, added, modified);
 
     ILOG("FNIFI", this, "Collection " << &coll << " found "
          << removed.size() << " removed files, " << added.size()
          << " added and " << modified.size() << " modified")
 
     /* update expressions */
-    const auto collHash = utils::Hash(coll->getName());
+    const auto collHash = utils::Hash(coll.getName());
     for (const auto& file : removed) {
         expression::Expression::Uncache(_storing, collHash, file.second);
         expression::Variable::Uncache(_storing, collHash, file.second);
@@ -218,13 +220,13 @@ void FNIFI::indexColl(file::Collection* coll) {
     }
 }
 
-void FNIFI::sortColl(file::Collection* coll) {
+void FNIFI::sortColl(file::Collection& coll) {
     /* disable synchronization during the process to avoid too many calls
          */
-    const auto collName = coll->getName();
+    const auto collName = coll.getName();
     _sortExpr->disableSync(collName);
 
-    for (auto& file : *coll) {
+    for (auto& file : coll) {
         const auto score = _sortExpr->get(&file.second);
         file.second.setSortingScore(score);
         _files.insert(&file.second);
@@ -233,13 +235,13 @@ void FNIFI::sortColl(file::Collection* coll) {
     _sortExpr->enableSync(collName);
 }
 
-void FNIFI::filterColl(file::Collection* coll) {
+void FNIFI::filterColl(file::Collection& coll) {
     /* disable synchronization during the process to avoid too many calls
          */
-    const auto collName = coll->getName();
+    const auto collName = coll.getName();
     _filtExpr->disableSync(collName);
 
-    for (auto& file : *coll) {
+    for (auto& file : coll) {
         const auto check = (_filtExpr->get(&file.second) == 0);
         file.second.setIsFilteredOut(check);
     }

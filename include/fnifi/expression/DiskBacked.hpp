@@ -24,6 +24,7 @@ public:
                const std::filesystem::path& parentDirName);
     virtual ~DiskBacked();
     expr_t get(const file::File* file);
+    void addCollection(const file::Collection& coll);
     virtual void disableSync(const std::string& collName, bool pull = true);
     virtual void enableSync(const std::string& collName, bool push = true);
 
@@ -36,6 +37,9 @@ private:
     virtual expr_t getValue(const file::File* file) = 0;
 
     std::unordered_map<std::string, StoredColl> _storedColls;
+    const std::string _keyHash;
+    const utils::SyncDirectory& _storing;
+    const std::filesystem::path& _parentDirName;
 };
 
 }  /* namespace expression */

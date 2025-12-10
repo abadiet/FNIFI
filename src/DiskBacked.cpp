@@ -29,35 +29,12 @@ DiskBacked::DiskBacked(const std::string& key,
            const utils::SyncDirectory& storing,
            const std::vector<file::Collection*>& colls,
            const std::filesystem::path& parentDirName)
+: _keyHash(utils::Hash(key)), _storing(storing), _parentDirName(parentDirName)
 {
     DLOG("DiskBacked", this, "Instanciation for key \"" << key << "\"")
 
     for (const auto& coll : colls) {
-        /* create or open the results.fnifi file */
-        const auto name = coll->getName();
-        const auto filename = utils::Hash(name) / parentDirName / utils::Hash(key);
-        bool ate = false;
-        if (storing.exists(filename)) {
-            ate = true;
-        }
-
-        /* fill _stored */
-        const auto& storedColl = _storedColls.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(name),
-            std::forward_as_tuple(
-                std::make_unique<utils::SyncDirectory::FileStream>(
-                    storing, filename, ate),
-                0
-            )
-        );
-
-        if (ate) {
-            /* the file already existed */
-            storedColl.first->second.maxId = static_cast<fileId_t>(
-                static_cast<size_t>(storedColl.first->second.file->tellg())
-                / sizeof(expr_t));
-        }
+        addCollection(*coll);
     }
 }
 
@@ -66,6 +43,34 @@ DiskBacked::~DiskBacked() {
         if (stored.second.file->is_open()) {
             stored.second.file->close();
         }
+    }
+}
+
+void DiskBacked::addCollection(const file::Collection& coll) {
+    /* create or open the results.fnifi file */
+    const auto name = coll.getName();
+    const auto filename = utils::Hash(name) / _parentDirName / _keyHash;
+    bool ate = false;
+    if (_storing.exists(filename)) {
+        ate = true;
+    }
+
+    /* fill _stored */
+    const auto& storedColl = _storedColls.emplace(
+        std::piecewise_construct,
+        std::forward_as_tuple(name),
+        std::forward_as_tuple(
+            std::make_unique<utils::SyncDirectory::FileStream>(
+                _storing, filename, ate),
+            0
+        )
+    );
+
+    if (ate) {
+        /* the file already existed */
+        storedColl.first->second.maxId = static_cast<fileId_t>(
+            static_cast<size_t>(storedColl.first->second.file->tellg())
+            / sizeof(expr_t));
     }
 }
 
