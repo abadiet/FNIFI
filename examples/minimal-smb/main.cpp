@@ -7,12 +7,12 @@
 
 
 int main(int argc, char** argv) {
-    if (argc != 9) {
+    if (argc != 8) {
         std::cout << "Usage: " << argv[0]
             << " <storingLocal> <storingServer> <indexingServer> <serverSMB> "
-            "<shareSMB> <workgroupSMB> <usernameSMB> <passwordSMB>"
+            "<shareSMB> <usernameSMB> <passwordSMB>"
             << std::endl << "example: " << argv[0] << " ~/.fnifi .fnifi "
-            "content 127.0.0.1 MyNAS WORKGROUP user0 mypassword" << std::endl
+            "content 127.0.0.1 MyNAS user0 mypassword" << std::endl
             << "will index smb://127.0.0.1/MyNAS/content, connected as user0 "
             "with password 'mypassword' and will save indexing in "
             "smb://127.0.0.1/MyNAS/.fnifi and locally in ~/.fnifi";
@@ -24,16 +24,15 @@ int main(int argc, char** argv) {
     const std::string indexingServer(argv[3]);
     const std::string serverSMB(argv[4]);
     const std::string shareSMB(argv[5]);
-    const std::string workgroupSMB(argv[6]);
-    const std::string usernameSMB(argv[7]);
-    const std::string passwordSMB(argv[8]);
+    const std::string usernameSMB(argv[6]);
+    const std::string passwordSMB(argv[7]);
 
     /* Connections */
     auto indexingSer = fnifi::connection::ConnectionBuilder::GetSMB(
-        serverSMB, shareSMB, workgroupSMB, usernameSMB, passwordSMB,
+        serverSMB, shareSMB, usernameSMB, passwordSMB,
         { indexingServer });
     auto storingSer = fnifi::connection::ConnectionBuilder::GetSMB(
-        serverSMB, shareSMB, workgroupSMB, usernameSMB, passwordSMB,
+        serverSMB, shareSMB, usernameSMB, passwordSMB,
         { storingServer });
 
     /* Synchronized directory (local processing and remote saving) */

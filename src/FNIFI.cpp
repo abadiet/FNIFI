@@ -81,13 +81,9 @@ void FNIFI::addCollection(file::Collection& coll, bool index) {
         indexColl(coll);
     }
 
-    for (const auto& file : coll) {
-        _files.insert(&file.second);
-    }
-
     if (_sortExpr) {
         _sortExpr->addCollection(coll);
-        sortColl(coll);
+        sortColl(coll); /* note that this also adds files to _files */
     }
 
     if (_filtExpr) {
@@ -157,7 +153,7 @@ FNIFI::Iterator FNIFI::end() {
 }
 
 FNIFI::fileset_t FNIFI::getFiles() const {
-    return _files;
+    return _files;  /* TODO: need to cope with the _toRemove files */
 }
 
 void FNIFI::indexColl(file::Collection& coll) {
@@ -221,8 +217,8 @@ void FNIFI::indexColl(file::Collection& coll) {
 }
 
 void FNIFI::sortColl(file::Collection& coll) {
-    /* disable synchronization during the process to avoid too many calls
-         */
+    /* WARNING: need to clear the files before calling it */
+    /* disable synchronization during the process to avoid too many calls */
     const auto collName = coll.getName();
     _sortExpr->disableSync(collName);
 
@@ -236,8 +232,7 @@ void FNIFI::sortColl(file::Collection& coll) {
 }
 
 void FNIFI::filterColl(file::Collection& coll) {
-    /* disable synchronization during the process to avoid too many calls
-         */
+    /* disable synchronization during the process to avoid too many calls */
     const auto collName = coll.getName();
     _filtExpr->disableSync(collName);
 
