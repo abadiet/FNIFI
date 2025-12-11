@@ -84,6 +84,10 @@ void FNIFI::addCollection(file::Collection& coll, bool index) {
     if (_sortExpr) {
         _sortExpr->addCollection(coll);
         sortColl(coll); /* note that this also adds files to _files */
+    } else {
+        for (const auto& file : coll) {
+            _files.insert(&file.second);
+        }
     }
 
     if (_filtExpr) {
