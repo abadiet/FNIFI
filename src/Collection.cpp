@@ -504,7 +504,7 @@ void Collection::removeCopyFile(fileId_t id) const {
 }
 
 void Collection::updateCopiesSz() {
-    const auto dirpath = _storingPath / COPY_DIRNAME;
+    const auto dirpath = _storing.absolute(_storingPath / COPY_DIRNAME);
     _copiesSz = 0;
     for (const auto& entry: std::filesystem::directory_iterator(dirpath)) {
         if (entry.is_regular_file()) {
