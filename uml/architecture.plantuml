@@ -154,6 +154,7 @@ package fnifi {
         interface IFileHelper {
             +getFilePath(id : fileId_t) : std::string
             +getLocalPreviewFilePath(id : fileId_t) : std::string
+            +getLocalCopyFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +getKind(id : fileId_t) : Kind
             +read(id : fileId_t) : fileBuf_t
@@ -170,6 +171,7 @@ package fnifi {
             +getId() : fileId_t
             +getPath() : std::string
             +getLocalPreviewPath() : std::string
+            +getLocalCopyFilePath() : std::string
             +getStats() : struct stat
             +getKind() : Kind
             +getMetadata(os : std::ostream&, type : expression::Kind,
@@ -191,8 +193,14 @@ package fnifi {
             -_filepaths : std::unique_ptr<utils::SyncDirectory::FileStream>
             -_info : std::unique_ptr<utils::SyncDirectory::FileStream>
             -_availableIds : std::unordered_set<filedId_t>
+            -_maxCopiesSz: const size_t
+            -_copiesSz: size_t
             -{static} GetKind(buf : const fileBuf_t&) : Kind
-            +Collection(indexingConn : IConnection*, storing : const utils::SyncDirectory&)
+            -removePreviewFile(id : fileId_t)
+            -removeCopyFile(id : fileId_t)
+            -updateCopiesSz()
+            +Collection(indexingConn : IConnection*, storing : const utils::SyncDirectory&,
+            maxCopiesSz : size_t := 1024000000L)
             +Collection(other : Collection&&)
             +~Collection()
             +index(removed : std::unordered_set<std::pair<const file::File*, fileId_t>&,
@@ -201,6 +209,7 @@ package fnifi {
             +defragment()
             +getFilePath(id : fileId_t) : std::string
             +getLocalPreviewFilePath(id : fileId_t) : std::string
+            +getLocalCopyFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +getKind(id : fileId_t) : Kind
             +read(id : fileId_t) : fileBuf_t

@@ -21,7 +21,8 @@ namespace file {
 class Collection : virtual public IFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
-               utils::SyncDirectory& storing);
+               utils::SyncDirectory& storing,
+               size_t maxCopiesSz = 1024000000L);
     /**
      * @warning use only if non associated to a FNIFI instance
      */
@@ -34,6 +35,7 @@ public:
     void defragment();
     std::string getFilePath(fileId_t id) override;
     std::string getLocalPreviewFilePath(fileId_t id) override;
+    std::string getLocalCopyFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
     Kind getKind(fileId_t id) override;
     fileBuf_t read(fileId_t id) override;
@@ -54,9 +56,19 @@ private:
     struct __attribute__((packed)) Info {
         struct timespec lastIndexing = {0, 0};
     };
+    struct FileTimed {
+        std::filesystem::path path;
+        std::filesystem::file_time_type time;
+
+        struct TimeDescending {
+            bool operator()(const FileTimed& a, const FileTimed& b) const;
+        };
+    };
 
     static Kind GetKind(const fileBuf_t& buf);
     void removePreviewFile(fileId_t id) const;
+    void removeCopyFile(fileId_t id) const;
+    void updateCopiesSz();
 
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;
@@ -66,6 +78,8 @@ private:
     std::unique_ptr<utils::SyncDirectory::FileStream> _filepaths;
     std::unique_ptr<utils::SyncDirectory::FileStream> _info;
     std::unordered_set<fileId_t> _availableIds;
+    const size_t _maxCopiesSz;
+    size_t _copiesSz;
 };
 
 }  /* namespace file */

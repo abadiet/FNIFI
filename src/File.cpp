@@ -34,6 +34,10 @@ std::string File::getLocalPreviewPath() const {
     return _helper->getLocalPreviewFilePath(_id);
 }
 
+std::string File::getLocalCopyPath() const {
+    return _helper->getLocalCopyFilePath(_id);
+}
+
 struct stat File::getStats() const {
     return _helper->getStats(_id);
 }

@@ -59,6 +59,7 @@ private:
     void indexColl(file::Collection& coll);
     void sortColl(file::Collection& coll);
     void filterColl(file::Collection& coll);
+
     std::vector<file::Collection*> _colls;
     std::unique_ptr<expression::Expression> _sortExpr;
     std::unique_ptr<expression::Expression> _filtExpr;

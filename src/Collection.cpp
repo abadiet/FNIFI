@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <ctime>
 #include <cstdio>
+#include <set>
 #ifdef ENABLE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif  /* ENABLE_OPENCV */
@@ -13,6 +14,7 @@
 #define MAPPING_FILE "mapping.fnifi"
 #define FILEPATHS_FILE "filepaths.fnifi"
 #define PREVIEW_DIRNAME "previews"
+#define COPY_DIRNAME "copies"
 #define DEFAULT_PREVIEW_CHAR '?'
 #define FILEPATH_EMPTY_CHAR '?'
 
@@ -21,7 +23,7 @@ using namespace fnifi;
 using namespace fnifi::file;
 
 Collection::Collection(connection::IConnection* indexingConn,
-                       utils::SyncDirectory& storing)
+                       utils::SyncDirectory& storing, size_t maxCopiesSz)
 : _indexingConn(indexingConn), _storing(storing),
     _storingPath(utils::Hash(getName())),
     _mapping(std::make_unique<utils::SyncDirectory::FileStream>
@@ -29,7 +31,8 @@ Collection::Collection(connection::IConnection* indexingConn,
     _filepaths(std::make_unique<utils::SyncDirectory::FileStream>
                (_storing, _storingPath / FILEPATHS_FILE)),
     _info(std::make_unique<utils::SyncDirectory::FileStream>
-          (_storing, _storingPath / INFO_FILE))
+          (_storing, _storingPath / INFO_FILE)),
+    _maxCopiesSz(maxCopiesSz), _copiesSz(0)
 {
     DLOG("Collection", this, "Instanciation for IConnection " << indexingConn
          << " and SyncDirectory " << &storing)
@@ -54,6 +57,12 @@ Collection::Collection(connection::IConnection* indexingConn,
 
     /* create the previews directory if needed */
     _storing.createDirs(_storingPath / PREVIEW_DIRNAME);
+
+    /* create the copies directory if needed */
+    {
+        const auto abspath = _storing.absolute(_storingPath / COPY_DIRNAME);
+        std::filesystem::create_directories(abspath);
+    }
 }
 
 Collection::Collection(Collection&& other) noexcept
@@ -67,7 +76,8 @@ Collection::Collection(Collection&& other) noexcept
                (_storing, _storingPath / FILEPATHS_FILE)),
     _info(std::make_unique<utils::SyncDirectory::FileStream>
           (_storing, _storingPath / INFO_FILE)),
-    _availableIds(std::move(other._availableIds))
+    _availableIds(std::move(other._availableIds)),
+    _maxCopiesSz(other._maxCopiesSz), _copiesSz(other._copiesSz)
 {
     for (auto& file : _files) {
         file.second.setHelper(this);
@@ -143,6 +153,7 @@ void Collection::index(
                              std::streamsize(placeholderPath.size()));
 
             removePreviewFile(id);
+            removeCopyFile(id);
 
             _availableIds.insert(id);
             removed.insert({&it->second, id});
@@ -154,6 +165,7 @@ void Collection::index(
                      "modified")
 
                 removePreviewFile(id);
+                removeCopyFile(id);
 
                 /* the file has changed */
                 modified.insert(&it->second);
@@ -375,6 +387,52 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     return abspath;
 }
 
+std::string Collection::getLocalCopyFilePath(fileId_t id) {
+    const auto dirpath = _storingPath / COPY_DIRNAME;
+    const auto filepath = dirpath / std::to_string(id);
+    const auto abspath = _storing.absolute(filepath);
+
+    if (std::filesystem::exists(abspath)) {
+        /* the preview file exists */
+        return abspath.string();
+    }
+
+    if (_copiesSz == 0) {
+        updateCopiesSz();
+    }
+
+    if (_copiesSz > _maxCopiesSz) {
+        ILOG("Collection", this, "Copies' cache is too large: about to remove "
+             "some cache")
+        /* copies cache is full: remove the half oldest */
+        std::set<FileTimed, FileTimed::TimeDescending> files;
+        for (const auto& entry : std::filesystem::directory_iterator(dirpath))
+        {
+            if (entry.is_regular_file()) {
+                files.insert({entry.path(),
+                    std::filesystem::last_write_time(entry)});
+            }
+        }
+        const auto N = files.size() / 2;
+        size_t i = 0;
+        auto file = files.begin();
+        while (i < N) {
+            std::filesystem::remove(file->path);
+            ++file;
+            ++i;
+        }
+        updateCopiesSz();
+    }
+
+    /* download the requested file */
+    if (_indexingConn->download(getFilePath(id), abspath)) {
+        _copiesSz += std::filesystem::file_size(abspath);
+        return abspath;
+    }
+
+    return "";
+}
+
 struct stat Collection::getStats(fileId_t id) {
     const auto filepath = getFilePath(id);
     return _indexingConn->getStats(filepath);
@@ -433,4 +491,33 @@ void Collection::removePreviewFile(fileId_t id) const {
         /* the preview file exists */
         _storing.remove(filepath);
     }
+}
+
+void Collection::removeCopyFile(fileId_t id) const {
+    const auto filepath = _storingPath / COPY_DIRNAME / std::to_string(id);
+    const auto abspath = _storing.absolute(filepath);
+
+    if (std::filesystem::exists(abspath)) {
+        /* the copy file exists */
+        std::filesystem::remove(filepath);
+    }
+}
+
+void Collection::updateCopiesSz() {
+    const auto dirpath = _storingPath / COPY_DIRNAME;
+    _copiesSz = 0;
+    for (const auto& entry: std::filesystem::directory_iterator(dirpath)) {
+        if (entry.is_regular_file()) {
+            _copiesSz += entry.file_size();
+        }
+    }
+    ILOG("Collection", this, "Found " << _copiesSz << " bytes in the copies' "
+         "cache")
+}
+
+bool Collection::FileTimed::TimeDescending::operator()(const FileTimed& a,
+                                                       const FileTimed& b)
+                                                       const
+{
+    return a.time < b.time;
 }

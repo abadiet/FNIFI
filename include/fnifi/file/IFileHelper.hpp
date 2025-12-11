@@ -14,6 +14,7 @@ public:
     virtual ~IFileHelper();
     virtual std::string getFilePath(fileId_t id) = 0;
     virtual std::string getLocalPreviewFilePath(fileId_t id) = 0;
+    virtual std::string getLocalCopyFilePath(fileId_t id) = 0;
     virtual struct stat getStats(fileId_t id) = 0;
     virtual Kind getKind(fileId_t id) = 0;
     virtual fileBuf_t read(fileId_t id) = 0;

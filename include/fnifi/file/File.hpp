@@ -24,6 +24,7 @@ public:
     fileId_t getId() const;
     std::string getPath() const;
     std::string getLocalPreviewPath() const;
+    std::string getLocalCopyPath() const;
     struct stat getStats() const;
     Kind getKind();
     std::ostream& getMetadata(std::ostream& os, expression::Kind type,
