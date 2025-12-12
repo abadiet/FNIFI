@@ -329,18 +329,23 @@ std::string Collection::getFilePath(fileId_t id) {
 
 std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);
+    const auto abspath = _storing.absolute(filepath);
+
+    if (_storing.exists(filepath)) {
+        /* the preview file exists in the cache */
+        return abspath.string();
+    }
 
     auto file = _storing.open(filepath, true, false);
 
     if (_storing.exists(filepath)) {
-        /* the preview file exists */
+        /* the preview file exists in storing and is now in the cache */
         file.close();
-        return file.getPath();
+        return abspath.string();
     }
 
-    /* the file did not exists and has to be created */
+    /* the file did not exists in storing and has to be created */
     const auto original = read(id);
-    const auto abspath = file.getPath();
     const auto type = GetKind(original);
     switch (type) {
         case JPEG:
