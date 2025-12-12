@@ -329,18 +329,18 @@ std::string Collection::getFilePath(fileId_t id) {
 
 std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);
-    const auto abspath = _storing.absolute(filepath);
+
+    auto file = _storing.open(filepath, true, false);
 
     if (_storing.exists(filepath)) {
         /* the preview file exists */
-        return abspath.string();
+        file.close();
+        return file.getPath();
     }
 
     /* the file did not exists and has to be created */
-    auto file = _storing.open(filepath, true, false);
-
     const auto original = read(id);
-
+    const auto abspath = file.getPath();
     const auto type = GetKind(original);
     switch (type) {
         case JPEG:
@@ -393,7 +393,7 @@ std::string Collection::getLocalCopyFilePath(fileId_t id) {
     const auto abspath = _storing.absolute(filepath);
 
     if (std::filesystem::exists(abspath)) {
-        /* the preview file exists */
+        /* the copy exists */
         return abspath.string();
     }
 
