@@ -406,7 +406,8 @@ std::string Collection::getLocalCopyFilePath(fileId_t id) {
              "some cache")
         /* copies cache is full: remove the half oldest */
         std::set<FileTimed, FileTimed::TimeDescending> files;
-        for (const auto& entry : std::filesystem::directory_iterator(dirpath))
+        for (const auto& entry : std::filesystem::directory_iterator(
+            _storing.absolute(dirpath)))
         {
             if (entry.is_regular_file()) {
                 files.insert({entry.path(),
