@@ -54,6 +54,9 @@ public:
     size_t size() const;
 
 private:
+    /**
+     * TODO: to move in connection::Local
+     */
     void addEntry(const std::filesystem::directory_entry& entry, bool files,
                   bool folders);
     std::unordered_set<Entry, EntryHash> _entries;

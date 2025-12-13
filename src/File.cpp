@@ -42,7 +42,7 @@ struct stat File::getStats() const {
     return _helper->getStats(_id);
 }
 
-Kind File::getKind() {
+Kind File::getKind() const {
     return _helper->getKind(_id);
 }
 

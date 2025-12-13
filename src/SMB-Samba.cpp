@@ -348,12 +348,14 @@ const libsmb_file_info* SMB::nextEntry(void* data, std::string& absname) {
         d->self->_ctx, d->dirs.back().smb);
     while (
         entry != nullptr &&
-        !(d->files && DOS_ISREG(entry->attrs)) &&
-        !(
-            (d->folders || d->recursive) && DOS_ISDIR(entry->attrs) &&
-            (std::strcmp(entry->name, ".") != 0) &&
-            (std::strcmp(entry->name, "..") != 0)
-        )
+        !((entry->name != nullptr && entry->name[0] != '.') && (
+            (
+                d->files && DOS_ISREG(entry->attrs)
+            ) ||
+            (
+                (d->folders || d->recursive) && DOS_ISDIR(entry->attrs)
+            )
+        ))
     ) {
         entry = smbc_getFunctionReaddirPlus(d->self->_ctx)(d->self->_ctx,
                                                            d->dirs.back().smb);

@@ -120,7 +120,10 @@ size_t DirectoryIterator::size() const {
 void DirectoryIterator::addEntry(const std::filesystem::directory_entry& entry,
                                  bool files, bool folders)
 {
-    if ((files && entry.is_regular_file()) || (folders && entry.is_directory())
+    if (((files && entry.is_regular_file()) ||
+            (folders && entry.is_directory())
+        ) &&
+        !entry.path().string().starts_with('.')
     ) {
         struct stat fileStat;
         if (lstat(entry.path().c_str(), &fileStat) == 0) {

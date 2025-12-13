@@ -26,7 +26,7 @@ public:
     std::string getLocalPreviewPath() const;
     std::string getLocalCopyPath() const;
     struct stat getStats() const;
-    Kind getKind();
+    Kind getKind() const;
     std::ostream& getMetadata(std::ostream& os, expression::Kind type,
                               const std::string& key) const;
     fileBuf_t read() const;

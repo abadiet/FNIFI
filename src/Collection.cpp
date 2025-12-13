@@ -338,7 +338,7 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
 
     auto file = _storing.open(filepath, true, false);
 
-    if (_storing.exists(filepath)) {
+    if (file.tellg() != 0) {
         /* the preview file exists in storing and is now in the cache */
         file.close();
         return abspath.string();
@@ -461,8 +461,17 @@ struct stat Collection::getStats(fileId_t id) {
 }
 
 Kind Collection::getKind(fileId_t id) {
-    const auto content = read(id);
-    return GetKind(content);
+    const auto cachePath = getLocalCopyFilePath(id);
+    std::ifstream file(cachePath);
+    if (file.is_open()) {
+        const fileBuf_t content((std::istreambuf_iterator<char>(file)),
+                                std::istreambuf_iterator<char>());
+        file.close();
+        return GetKind(content);
+    }
+    WLOG("Collection", this, "Unable to open local cache \"" << cachePath
+         << "\" for getting its kind")
+    return Kind::UNKNOWN;
 }
 
 fileBuf_t Collection::read(fileId_t id) {
@@ -495,40 +504,44 @@ std::string Collection::getName() const {
 }
 
 Kind Collection::GetKind(const fileBuf_t& buf) {
-    if (StartWith(buf, "BM", 2)) return Kind::BMP;
+    if (StartWith(buf, "BM", 2))
+        return Kind::BMP;
     if (StartWith(buf, "GIF87a", 6) || StartWith(buf, "GIF89a", 6))
         return Kind::GIF;
     if (StartWith(buf, "\x00\x00\x00\x0c\x6a\x50\x20\x20\x0d\x0a\x87\x0a", 12))
         return Kind::JPEG2000;
-    if (StartWith(buf, "\xFF\xD8\xFF", 3)) return Kind::JPEG;
-    if (StartWith(buf, "\x89\x50\x4E\x47", 4)) return Kind::PNG;
-    if (StartWith(buf, "RIFF", 4) && buf.size() >= 12 &&
-        StartWith(buf, "WEBP", 4, 8)) return Kind::WEBP;
-    if (StartWith(buf, "P1", 2) || StartWith(buf, "P4", 2)) return Kind::PBM;
-    if (StartWith(buf, "P2", 2) || StartWith(buf, "P5", 2)) return Kind::PGM;
-    if (StartWith(buf, "P3", 2) || StartWith(buf, "P6", 2)) return Kind::PPM;
-    if (StartWith(buf,  "PF", 2) || StartWith(buf, "Pf", 2)) return Kind::PFM;
+    if (StartWith(buf, "\xff\xd8\xff", 3))
+        return Kind::JPEG;
+    if (StartWith(buf, "\x89\x50\x4E\x47", 4))
+        return Kind::PNG;
+    if (StartWith(buf, "RIFF", 4) && StartWith(buf, "WEBP", 4, 8))
+        return Kind::WEBP;
+    if (StartWith(buf, "P1", 2) || StartWith(buf, "P4", 2))
+        return Kind::PBM;
+    if (StartWith(buf, "P2", 2) || StartWith(buf, "P5", 2))
+        return Kind::PGM;
+    if (StartWith(buf, "P3", 2) || StartWith(buf, "P6", 2))
+        return Kind::PPM;
+    if (StartWith(buf,  "PF", 2) || StartWith(buf, "Pf", 2))
+        return Kind::PFM;
     if (StartWith(buf, "\x49\x49\x2A\x00", 4) ||
-        StartWith(buf, "\x49\x49\x00\x2A", 4)) return Kind::TIFF;
-    if (StartWith(buf, "\x76\x2F\x31\x01", 4)) return Kind::EXR;
-    if (StartWith(buf, "\x23\x3F\x52\x41\x44\x49\x41\x4E\x43\x45\x0A", 11)) return Kind::HDR;
+        StartWith(buf, "\x49\x49\x00\x2A", 4))
+        return Kind::TIFF;
+    if (StartWith(buf, "\x76\x2F\x31\x01", 4))
+        return Kind::EXR;
+    if (StartWith(buf, "#?", 2))
+        return Kind::HDR;  /* not normalized */
     /* TODO: AVIF, PXM, SR, RAS, PIC */
     return Kind::UNKNOWN;
 }
 
 bool Collection::StartWith(const fileBuf_t& buf, const char* chars, size_t n,
-                           fileBuf_t::iterator::difference_type offset) {
-    if (buf.size() < n) {
+                           fileBuf_t::iterator::difference_type offset)
+{
+    if (buf.size() < n + static_cast<size_t>(offset)) {
         return false;
     }
-    auto p = buf.begin() + offset;
-    for (size_t i = 0; i < n; ++i) {
-      if (*p != chars[i]) {
-        return false;
-      }
-        ++p;
-    }
-    return true;
+    return std::memcmp(buf.data() + offset, chars, n) == 0;
 }
 
 

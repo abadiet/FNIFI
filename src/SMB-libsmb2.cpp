@@ -342,13 +342,15 @@ const smb2dirent* SMB::nextEntry(void* data, std::string& absname) {
     auto entry = smb2_readdir(d->self->_ctx, d->dirs.back().smb);
     while (
         entry != nullptr &&
-        !(d->files && (entry->st.smb2_type == SMB2_TYPE_FILE)) &&
-        !(
-            (d->folders || d->recursive) &&
-            (entry->st.smb2_type == SMB2_TYPE_DIRECTORY) &&
-            (std::strcmp(entry->name, ".") != 0) &&
-            (std::strcmp(entry->name, "..") != 0)
-        )
+        !((entry->name != nullptr && entry->name[0] != '.') && (
+            (
+                d->files && (entry->st.smb2_type == SMB2_TYPE_FILE)
+            ) ||
+            (
+                (d->folders || d->recursive) &&
+                (entry->st.smb2_type == SMB2_TYPE_DIRECTORY)
+            )
+        ))
     ) {
         entry = smb2_readdir(d->self->_ctx, d->dirs.back().smb);
     }
