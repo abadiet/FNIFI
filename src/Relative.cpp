@@ -11,8 +11,8 @@ Relative::Relative(IConnection* conn, const std::filesystem::path& path)
          "path " << path)
 }
 
-void Relative::connect() {
-    _conn->connect();
+void Relative::connect(unsigned int maxTry) {
+    _conn->connect(maxTry);
 }
 
 void Relative::disconnect(bool force) {

@@ -24,7 +24,7 @@ public:
     SMB(const std::string& server = "127.0.0.1", const std::string& share = "",
         const std::string& username = "", const std::string& password = "");
     ~SMB() override;
-    void connect() override;
+    void connect(unsigned int maxTry = 3) override;
     void disconnect(bool force = false) override;
     DirectoryIterator iterate(const std::filesystem::path& path,
                               bool recursive = true, bool files = true,

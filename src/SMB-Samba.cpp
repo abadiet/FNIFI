@@ -52,7 +52,7 @@ SMB::~SMB() {
     disconnect();
 }
 
-void SMB::connect() {
+void SMB::connect(unsigned int maxTry) {
     DLOG("SMB", this, "Connection")
 
     if (_ctx) {
@@ -81,6 +81,7 @@ void SMB::connect() {
     RELEASE
 
     /* TODO: check if connected */
+    UNUSED(maxTry)
 }
 
 void SMB::disconnect(bool aggresive) {

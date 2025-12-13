@@ -12,7 +12,7 @@ namespace connection {
 class IConnection {
 public:
     virtual ~IConnection();
-    virtual void connect() = 0;
+    virtual void connect(unsigned int maxTry = 3) = 0;
     virtual void disconnect(bool force = false) = 0;
     virtual DirectoryIterator iterate(const std::filesystem::path& path,
                                       bool recursive = true, bool files = true,

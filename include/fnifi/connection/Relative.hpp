@@ -12,7 +12,7 @@ namespace connection {
 class Relative : virtual public IConnection {
 public:
     Relative(IConnection* conn, const std::filesystem::path& path);
-    void connect() override;
+    void connect(unsigned int maxTry = 3) override;
     void disconnect(bool force = false) override;
     DirectoryIterator iterate(const std::filesystem::path& path,
                               bool recursive = true, bool files = true,

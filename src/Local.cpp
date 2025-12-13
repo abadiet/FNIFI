@@ -11,7 +11,9 @@ Local::Local() {
     DLOG("Local", this, "Instanciation")
 }
 
-void Local::connect() {}
+void Local::connect(unsigned int maxTry) {
+    UNUSED(maxTry)
+}
 
 void Local::disconnect(bool force) {
     UNUSED(force)

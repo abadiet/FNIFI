@@ -348,6 +348,8 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     const auto original = read(id);
     const auto type = GetKind(original);
     switch (type) {
+        case UNKNOWN:
+            /* we will try with OpenCV anyway */
         case BMP:
         case GIF:
         case JPEG2000:
@@ -368,27 +370,33 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
         case PIC:
             {
 #ifdef ENABLE_OPENCV
-                const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
-                if (img.empty()) {
-                    /* failed to decode image data */
-                    break;
-                }
-                cv::Mat res;
-                auto ratio = 256.0f / static_cast<float>(img.cols);
-                if (ratio > 1.0f) {
-                    ratio = 1.0f;
-                }
-                cv::resize(img, res, cv::Size(256,
-                    static_cast<int>(ratio * static_cast<float>(img.rows))));
                 fileBuf_t buffer;
-                cv::imencode(".jpg", res, buffer,
-                             {cv::IMWRITE_JPEG_QUALITY, 70});
-                file.write(reinterpret_cast<const char*>(buffer.data()),
-                           std::streamsize(buffer.size()));
-                file.push();
-                file.close();
+                try {
+                    const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
+                    if (img.empty()) {
+                        /* failed to decode image data */
+                        break;
+                    }
+                    cv::Mat res;
+                    auto ratio = 256.0f / static_cast<float>(img.cols);
+                    if (ratio > 1.0f) {
+                        ratio = 1.0f;
+                    }
+                    cv::resize(img, res, cv::Size(256,
+                                                  static_cast<int>(ratio * static_cast<float>(img.rows))));
+                    cv::imencode(".jpg", res, buffer,
+                                 {cv::IMWRITE_JPEG_QUALITY, 70});
+                } catch (...) {
+                }
+                if (buffer.size() > 0) {
+                    file.write(reinterpret_cast<const char*>(buffer.data()),
+                               std::streamsize(buffer.size()));
+                    file.push();
+                    file.close();
 
-                return abspath;
+                    return abspath;
+                }
+                break;
 #else  /* ENABLE_OPENCV */
                 WLOG("Collection", this, "The preview for " << abspath
                     << " cannot be processed as OpenCV is disabled. Returning "
@@ -396,9 +404,6 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
                 return "";
 #endif  /* ENABLE_OPENCV */
             }
-        case UNKNOWN:
-            /* cannot handle this file type: set the default preview */
-            break;
     }
 
     file.put(DEFAULT_PREVIEW_CHAR);
