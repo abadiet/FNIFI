@@ -243,7 +243,8 @@ package fnifi {
 
     package connection {
         struct ConnectionBuilder::Options {
-            +relativePath : std::string
+            +relativePath : std::string := ""
+            +maxConnectionTry : unsigned int := 3
         }
 
         class ConnectionBuilder {

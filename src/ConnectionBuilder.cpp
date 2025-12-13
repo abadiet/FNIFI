@@ -20,7 +20,7 @@ IConnection* ConnectionBuilder::GetLocal(const ConnectionBuilder::Options& opt)
     if (pos == _built.end()) {
         const auto res = _built.insert({hsh, new Local()});
         conn = res.first->second;
-        conn->connect();
+        conn->connect(opt.maxConnectionTry);
     } else {
         conn = pos->second;
     }
@@ -42,7 +42,7 @@ IConnection* ConnectionBuilder::GetSMB(const std::string& server,
         const auto res = _built.insert({hsh,
             new SMB(server, share, username, password)});
         conn = res.first->second;
-        conn->connect();
+        conn->connect(opt.maxConnectionTry);
     } else {
         conn = pos->second;
     }
@@ -68,7 +68,7 @@ IConnection* ConnectionBuilder::SetupOptions(IConnection* conn,
         const auto res = _built.insert({fullhsh,
             new Relative(conn, opt.relativePath)});
         conn = res.first->second;
-        conn->connect();
+        conn->connect(opt.maxConnectionTry);
     } else {
         conn = pos->second;
     }

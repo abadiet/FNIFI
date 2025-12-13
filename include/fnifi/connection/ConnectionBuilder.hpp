@@ -11,7 +11,8 @@ namespace connection {
 class ConnectionBuilder {
 public:
     struct Options {
-        std::string relativePath;
+        std::string relativePath = "";
+        unsigned int maxConnectionTry = 3;
     };
 
     static IConnection* GetLocal(const Options& opt);
