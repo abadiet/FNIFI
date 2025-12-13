@@ -6,8 +6,24 @@ namespace fnifi {
 namespace file {
 
 enum Kind {
+    BMP,
+    GIF,
+    JPEG2000,
     JPEG,
     PNG,
+    WEBP,
+    AVIF,
+    PBM,
+    PGM,
+    PPM,
+    PXM,
+    PFM,
+    SR,
+    RAS,
+    TIFF,
+    EXR,
+    HDR,
+    PIC,
     UNKNOWN,
 };
 

@@ -348,8 +348,24 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     const auto original = read(id);
     const auto type = GetKind(original);
     switch (type) {
+        case BMP:
+        case GIF:
+        case JPEG2000:
         case JPEG:
         case PNG:
+        case WEBP:
+        case AVIF:
+        case PBM:
+        case PGM:
+        case PPM:
+        case PXM:
+        case PFM:
+        case SR:
+        case RAS:
+        case TIFF:
+        case EXR:
+        case HDR:
+        case PIC:
             {
 #ifdef ENABLE_OPENCV
                 const auto img = cv::imdecode(original, cv::IMREAD_COLOR);
@@ -479,16 +495,42 @@ std::string Collection::getName() const {
 }
 
 Kind Collection::GetKind(const fileBuf_t& buf) {
-    if (buf.size() > 3 && buf[0] == 0xFF && buf[1] == 0xD8 && buf[2] == 0xFF) {
-        return Kind::JPEG;
-    }
-    if (buf.size() > 4 && buf[0] == 0x89 && buf[1] == 0x50 && buf[2] == 0x4E &&
-        buf[3] == 0x47)
-    {
-        return Kind::PNG;
-    }
+    if (StartWith(buf, "BM", 2)) return Kind::BMP;
+    if (StartWith(buf, "GIF87a", 6) || StartWith(buf, "GIF89a", 6))
+        return Kind::GIF;
+    if (StartWith(buf, "\x00\x00\x00\x0c\x6a\x50\x20\x20\x0d\x0a\x87\x0a", 12))
+        return Kind::JPEG2000;
+    if (StartWith(buf, "\xFF\xD8\xFF", 3)) return Kind::JPEG;
+    if (StartWith(buf, "\x89\x50\x4E\x47", 4)) return Kind::PNG;
+    if (StartWith(buf, "RIFF", 4) && buf.size() >= 12 &&
+        StartWith(buf, "WEBP", 4, 8)) return Kind::WEBP;
+    if (StartWith(buf, "P1", 2) || StartWith(buf, "P4", 2)) return Kind::PBM;
+    if (StartWith(buf, "P2", 2) || StartWith(buf, "P5", 2)) return Kind::PGM;
+    if (StartWith(buf, "P3", 2) || StartWith(buf, "P6", 2)) return Kind::PPM;
+    if (StartWith(buf,  "PF", 2) || StartWith(buf, "Pf", 2)) return Kind::PFM;
+    if (StartWith(buf, "\x49\x49\x2A\x00", 4) ||
+        StartWith(buf, "\x49\x49\x00\x2A", 4)) return Kind::TIFF;
+    if (StartWith(buf, "\x76\x2F\x31\x01", 4)) return Kind::EXR;
+    if (StartWith(buf, "\x23\x3F\x52\x41\x44\x49\x41\x4E\x43\x45\x0A", 11)) return Kind::HDR;
+    /* TODO: AVIF, PXM, SR, RAS, PIC */
     return Kind::UNKNOWN;
 }
+
+bool Collection::StartWith(const fileBuf_t& buf, const char* chars, size_t n,
+                           fileBuf_t::iterator::difference_type offset) {
+    if (buf.size() < n) {
+        return false;
+    }
+    auto p = buf.begin() + offset;
+    for (size_t i = 0; i < n; ++i) {
+      if (*p != chars[i]) {
+        return false;
+      }
+        ++p;
+    }
+    return true;
+}
+
 
 void Collection::removePreviewFile(fileId_t id) const {
     const auto filepath = _storingPath / PREVIEW_DIRNAME / std::to_string(id);

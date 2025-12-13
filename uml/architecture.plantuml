@@ -146,8 +146,24 @@ package fnifi {
 
     package file {
         enum Kind {
-            +JPEG,
-            +PNG,
+            +BMP
+            +GIF
+            +JPEG2000
+            +JPEG
+            +PNG
+            +WEBP
+            +AVIF
+            +PBM
+            +PGM
+            +PPM
+            +PXM
+            +PFM
+            +SR
+            +RAS
+            +TIFF
+            +EXR
+            +HDR
+            +PIC
             +UNKNOWN
         }
 
@@ -196,6 +212,8 @@ package fnifi {
             -_maxCopiesSz: const size_t
             -_copiesSz: size_t
             -{static} GetKind(buf : const fileBuf_t&) : Kind
+            -{static} StartWith(buf : const fileBuf_t&, chars: const char*, n: size_t
+            offset: difference_type := 0) : bool
             -removePreviewFile(id : fileId_t)
             -removeCopyFile(id : fileId_t)
             -updateCopiesSz()

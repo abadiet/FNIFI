@@ -6,6 +6,7 @@
 
 #define SEP std::string("\xFF")
 
+
 using namespace fnifi;
 using namespace fnifi::connection;
 
@@ -28,10 +29,10 @@ IConnection* ConnectionBuilder::GetLocal(const ConnectionBuilder::Options& opt)
 }
 
 IConnection* ConnectionBuilder::GetSMB(const std::string& server,
-                               const std::string& share,
-                               const std::string& username,
-                               const std::string& password,
-                               const ConnectionBuilder::Options& opt)
+                                       const std::string& share,
+                                       const std::string& username,
+                                       const std::string& password,
+                                       const ConnectionBuilder::Options& opt)
 {
     IConnection* conn;
     const auto hsh = "SMB" + SEP + server + SEP + share + SEP + username + SEP

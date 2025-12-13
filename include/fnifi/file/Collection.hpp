@@ -66,6 +66,8 @@ private:
     };
 
     static Kind GetKind(const fileBuf_t& buf);
+    static bool StartWith(const fileBuf_t& buf, const char* chars, size_t n,
+                          fileBuf_t::iterator::difference_type offset = 0);
     void removePreviewFile(fileId_t id) const;
     void removeCopyFile(fileId_t id) const;
     void updateCopiesSz();
