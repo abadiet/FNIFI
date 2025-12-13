@@ -64,27 +64,25 @@ void SMB::connect(unsigned int maxTry) {
     smb2_set_password(_ctx, _password.c_str());
 
     unsigned int iTry = 1;
-    while (maxTry == 0 || iTry <= maxTry) {
-        int res = -1;
+    int hasFailed = 1;
+    while (hasFailed && (maxTry == 0 || iTry <= maxTry)) {
         try {
-            res = smb2_connect_share(_ctx, _server.c_str(),_share.c_str(),
-                                     _username.c_str());
+            hasFailed = smb2_connect_share(_ctx, _server.c_str(),
+                                           _share.c_str(), _username.c_str());
         } catch (...) {
         }
 
-        if (res) {
-            if (iTry == maxTry) {
-                std::ostringstream msg;
-                msg << "Connection failed: " << smb2_get_error(_ctx);
-
-                RELEASE
-
-                ELOG("SMB", this, msg.str())
-                throw std::runtime_error(msg.str());
-            }
-        }
-
         ++iTry;
+    }
+
+    if (hasFailed) {
+        std::ostringstream msg;
+        msg << "Connection failed: " << smb2_get_error(_ctx);
+
+        RELEASE
+
+        ELOG("SMB", this, msg.str())
+        throw std::runtime_error(msg.str());
     }
 
     RELEASE
