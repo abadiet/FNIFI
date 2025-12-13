@@ -173,7 +173,7 @@ package fnifi {
             +getLocalCopyFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +getKind(id : fileId_t) : Kind
-            +read(id : fileId_t) : fileBuf_t
+            +read(id : fileId_t, nocache: bool := false) : fileBuf_t
             +getName() : std::string
         }
 
@@ -192,7 +192,7 @@ package fnifi {
             +getKind() : Kind
             +getMetadata(os : std::ostream&, type : expression::Kind,
             key : const std::string&) : std::ostream&
-            +read() : fileBuf_t
+            +read(nocache: bool := false) : fileBuf_t
             +setSortingScore(score : expr_t)
             +setIsFilteredOut(isFilteredOut : bool)
             +isFileteredOut() : boll
@@ -230,7 +230,7 @@ package fnifi {
             +getLocalCopyFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
             +getKind(id : fileId_t) : Kind
-            +read(id : fileId_t) : fileBuf_t
+            +read(id : fileId_t, nocache: bool := false) : fileBuf_t
             +getName() : std::string
             +begin() : std::unordered_map<fileId_t, File>::const_iterator
             +end() : std::unordered_map<fileId_t, File>::const_iterator

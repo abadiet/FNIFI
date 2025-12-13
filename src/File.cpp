@@ -51,7 +51,7 @@ std::ostream& File::getMetadata(std::ostream& os, expression::Kind type,
     DLOG("File", this, "Receive request for metadata of type " << type
          << " and key \"" << key << "\"")
 
-    const auto data = _helper->read(_id);
+    const auto data = read(_id);
 
     switch (type) {
         case expression::CTIME:
@@ -131,8 +131,8 @@ std::ostream& File::getMetadata(std::ostream& os, expression::Kind type,
     return os;
 }
 
-fileBuf_t File::read() const {
-    return _helper->read(_id);
+fileBuf_t File::read(bool nocache) const {
+    return _helper->read(_id, nocache);
 }
 
 void File::setSortingScore(expr_t score) {

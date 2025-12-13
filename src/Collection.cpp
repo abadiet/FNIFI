@@ -461,22 +461,32 @@ struct stat Collection::getStats(fileId_t id) {
 }
 
 Kind Collection::getKind(fileId_t id) {
-    const auto cachePath = getLocalCopyFilePath(id);
-    std::ifstream file(cachePath);
+    const auto content = read(id);
+    if (content.size() > 0) {
+        return GetKind(content);
+    }
+    WLOG("Collection", this, "Unable to read file " << id <<
+         ": returning Kind::UNKNOWN")
+    return Kind::UNKNOWN;
+}
+
+fileBuf_t Collection::read(fileId_t id, bool nocache) {
+    if (nocache) {
+        const auto filepath = getFilePath(id);
+        return _indexingConn->read(filepath);
+    }
+    const auto path = getLocalCopyFilePath(id);
+
+    std::ifstream file(path);
     if (file.is_open()) {
         const fileBuf_t content((std::istreambuf_iterator<char>(file)),
                                 std::istreambuf_iterator<char>());
         file.close();
-        return GetKind(content);
+        return content;
     }
-    WLOG("Collection", this, "Unable to open local cache \"" << cachePath
-         << "\" for getting its kind")
-    return Kind::UNKNOWN;
-}
-
-fileBuf_t Collection::read(fileId_t id) {
-    const auto filepath = getFilePath(id);
-    return _indexingConn->read(filepath);
+    WLOG("Collection", this, "Unable to open local cache \"" << path
+         << "\": returning an empty buffer.")
+    return {};
 }
 
 std::unordered_map<fileId_t, File>::const_iterator Collection::begin() const {

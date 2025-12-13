@@ -29,7 +29,7 @@ public:
     Kind getKind() const;
     std::ostream& getMetadata(std::ostream& os, expression::Kind type,
                               const std::string& key) const;
-    fileBuf_t read() const;
+    fileBuf_t read(bool nocache = false) const;
     void setSortingScore(expr_t score);
     expr_t getSortingScore() const;
     void setIsFilteredOut(bool isFilteredOut);

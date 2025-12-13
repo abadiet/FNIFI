@@ -38,7 +38,7 @@ public:
     std::string getLocalCopyFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
     Kind getKind(fileId_t id) override;
-    fileBuf_t read(fileId_t id) override;
+    fileBuf_t read(fileId_t id, bool nocache = false) override;
     std::string getName() const override;
     std::unordered_map<fileId_t, File>::const_iterator begin() const;
     std::unordered_map<fileId_t, File>::const_iterator end() const;
