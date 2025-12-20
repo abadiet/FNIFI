@@ -13,6 +13,9 @@
 #include <time.h>
 #include <filesystem>
 #include <memory>
+#ifdef ENABLE_OPENCV
+#include <opencv2/opencv.hpp>
+#endif  /* ENABLE_OPENCV */
 
 
 namespace fnifi {
@@ -68,6 +71,9 @@ private:
     static Kind GetKind(const fileBuf_t& buf);
     static bool StartWith(const fileBuf_t& buf, const char* chars, size_t n,
                           fileBuf_t::iterator::difference_type offset = 0);
+#ifdef ENABLE_OPENCV
+    static fileBuf_t makePreview(const cv::Mat& img);
+#endif  /* ENABLE_OPENCV */
     void removePreviewFile(fileId_t id) const;
     void removeCopyFile(fileId_t id) const;
     void updateCopiesSz();

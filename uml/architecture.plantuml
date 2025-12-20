@@ -164,6 +164,14 @@ package fnifi {
             +EXR
             +HDR
             +PIC
+            +MKV
+            +AVI
+            +MTS
+            +MOV
+            +WMV
+            +YUV
+            +MP4
+            +M4V
             +UNKNOWN
         }
 
@@ -213,6 +221,7 @@ package fnifi {
             -_copiesSz: size_t
             -{static} GetKind(buf : const fileBuf_t&) : Kind
             -{static} StartWith(buf : const fileBuf_t&, chars: const char*, n: size_t
+            -{static} makePreview(const cv::Mat& img) : fileBuf_t
             offset: difference_type := 0) : bool
             -removePreviewFile(id : fileId_t)
             -removeCopyFile(id : fileId_t)

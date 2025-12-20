@@ -6,9 +6,6 @@
 #include <ctime>
 #include <cstdio>
 #include <set>
-#ifdef ENABLE_OPENCV
-#include <opencv2/opencv.hpp>
-#endif  /* ENABLE_OPENCV */
 
 #define INFO_FILE "info.fnifi"
 #define MAPPING_FILE "mapping.fnifi"
@@ -348,8 +345,6 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
     const auto original = read(id);
     const auto type = GetKind(original);
     switch (type) {
-        case UNKNOWN:
-            /* we will try with OpenCV anyway */
         case BMP:
         case GIF:
         case JPEG2000:
@@ -377,15 +372,8 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
                         /* failed to decode image data */
                         break;
                     }
-                    cv::Mat res;
-                    auto ratio = 256.0f / static_cast<float>(img.cols);
-                    if (ratio > 1.0f) {
-                        ratio = 1.0f;
-                    }
-                    cv::resize(img, res, cv::Size(256,
-                                                  static_cast<int>(ratio * static_cast<float>(img.rows))));
-                    cv::imencode(".jpg", res, buffer,
-                                 {cv::IMWRITE_JPEG_QUALITY, 70});
+
+                    buffer = makePreview(img);
                 } catch (...) {
                 }
                 if (buffer.size() > 0) {
@@ -404,6 +392,95 @@ std::string Collection::getLocalPreviewFilePath(fileId_t id) {
                 return "";
 #endif  /* ENABLE_OPENCV */
             }
+        case MKV:
+        case AVI:
+        case MTS:
+        case MOV:
+        case WMV:
+        case YUV:
+        case MP4:
+        case M4V:
+            {
+#ifdef ENABLE_OPENCV
+                fileBuf_t buffer;
+                const auto originalFilePath = getLocalCopyFilePath(id);
+                try {
+                    auto video = cv::VideoCapture(originalFilePath);
+                    if (!video.isOpened()) {
+                        /* failed to open video */
+                        break;
+                    }
+
+                    cv::Mat img;
+                    video.read(img);
+                    if (img.empty()) {
+                        /* failed to decode image data */
+                        break;
+                    }
+
+                    buffer = makePreview(img);
+                } catch (...) {
+                }
+                if (buffer.size() > 0) {
+                    file.write(reinterpret_cast<const char*>(buffer.data()),
+                               std::streamsize(buffer.size()));
+                    file.push();
+                    file.close();
+
+                    return abspath;
+                }
+                break;
+#else  /* ENABLE_OPENCV */
+                WLOG("Collection", this, "The preview for " << abspath
+                    << " cannot be processed as OpenCV is disabled. Returning "
+                    "empty path.")
+                return "";
+#endif  /* ENABLE_OPENCV */
+            }
+        case UNKNOWN:
+            /* we will try to decode it as an image and then a video anyway */
+            {
+#ifdef ENABLE_OPENCV
+                fileBuf_t buffer;
+                try {
+                    auto img = cv::imdecode(original, cv::IMREAD_COLOR);
+                    if (img.empty()) {
+                        /* failed to decode data as an image */
+
+                        const auto originalFilePath = getLocalCopyFilePath(id);
+                        auto video = cv::VideoCapture(originalFilePath);
+                        if (!video.isOpened()) {
+                            /* failed to open video */
+                            break;
+                        }
+
+                        video.read(img);
+                        if (img.empty()) {
+                            /* failed to decode image data */
+                            break;
+                        }
+                    }
+
+                    buffer = makePreview(img);
+                } catch (...) {
+                }
+                if (buffer.size() > 0) {
+                    file.write(reinterpret_cast<const char*>(buffer.data()),
+                               std::streamsize(buffer.size()));
+                    file.push();
+                    file.close();
+
+                    return abspath;
+                }
+                break;
+#else  /* ENABLE_OPENCV */
+                WLOG("Collection", this, "The preview for " << abspath
+                    << " cannot be processed as OpenCV is disabled. Returning "
+                    "empty path.")
+                return "";
+#endif  /* ENABLE_OPENCV */
+            }
+
     }
 
     file.put(DEFAULT_PREVIEW_CHAR);
@@ -546,7 +623,23 @@ Kind Collection::GetKind(const fileBuf_t& buf) {
         return Kind::EXR;
     if (StartWith(buf, "#?", 2))
         return Kind::HDR;  /* not normalized */
-    /* TODO: AVIF, PXM, SR, RAS, PIC */
+    if (StartWith(buf, "\x1A\x45\xDF\xA3", 4))
+        return Kind::MKV;
+    if (StartWith(buf, "RIFF", 4) && StartWith(buf, "AVI ", 4, 8))
+        return Kind::AVI;
+    if (StartWith(buf, "ftypqt  ", 8, 4))
+        return Kind::MOV;
+    if (StartWith(buf,
+            "\x30\x26\xB2\x75\x8E\x66\xCF\x11\xA6\xD9\x00\xAA\x00\x62\xCE\x6C",
+            16))
+        return Kind::WMV;
+    if (StartWith(buf, "RIFF", 4) && StartWith(buf, "YUVN", 4, 8))
+        return Kind::YUV;
+    if (StartWith(buf, "ftypisom", 8, 4) || StartWith(buf, "ftypMSNV", 8, 4))
+        return Kind::MP4;
+    if (StartWith(buf, "ftypmp42", 8, 4) || StartWith(buf, "ftypM4V ", 8, 4))
+        return Kind::M4V;
+    /* TODO: AVIF, PXM, SR, RAS, PIC, MTS */
     return Kind::UNKNOWN;
 }
 
@@ -575,7 +668,7 @@ void Collection::removeCopyFile(fileId_t id) const {
 
     if (std::filesystem::exists(abspath)) {
         /* the copy file exists */
-        std::filesystem::remove(filepath);
+        std::filesystem::remove(abspath);
     }
 }
 
@@ -590,6 +683,21 @@ void Collection::updateCopiesSz() {
     ILOG("Collection", this, "Found " << _copiesSz << " bytes in the copies' "
          "cache")
 }
+
+#ifdef ENABLE_OPENCV
+fileBuf_t Collection::makePreview(const cv::Mat& img) {
+    fileBuf_t buffer;
+    cv::Mat res;
+    auto ratio = 256.0f / static_cast<float>(img.cols);
+    if (ratio > 1.0f) {
+        ratio = 1.0f;
+    }
+    cv::resize(img, res, cv::Size(256, static_cast<int>(
+        ratio * static_cast<float>(img.rows))));
+    cv::imencode(".jpg", res, buffer, {cv::IMWRITE_JPEG_QUALITY, 70});
+    return buffer;
+}
+#endif  /* ENABLE_OPENCV */
 
 bool Collection::FileTimed::TimeDescending::operator()(const FileTimed& a,
                                                        const FileTimed& b)
