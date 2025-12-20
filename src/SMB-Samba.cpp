@@ -12,12 +12,12 @@
 #define DOS_ISREG(dos)                                                        \
     ((dos & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) == 0)
 
-#define BUFFER_SZ 4096
-
 #define ACQUIRE                                                               \
     std::unique_lock lk(_mtx);                                                \
-    _cv.wait(lk, []{ return true; });
+    _cv.wait(lk, []{ return _available; });                                   \
+    _available = false;
 #define RELEASE                                                               \
+    _available = true;                                                        \
     lk.unlock();                                                              \
     _cv.notify_one();
 
@@ -27,6 +27,7 @@ using namespace fnifi::connection;
 
 std::condition_variable SMB::_cv;
 std::mutex SMB::_mtx;
+bool SMB::_available = true;
 
 SMB::SMB(const std::string& server, const std::string& share,
          const std::string& username, const std::string& password)

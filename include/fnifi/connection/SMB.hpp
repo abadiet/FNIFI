@@ -73,6 +73,7 @@ private:
     std::string _path;
     static std::condition_variable _cv;
     static std::mutex _mtx;
+    static bool _available;
 #endif  /* ENABLE_SAMBA */
 
 #ifdef ENABLE_LIBSMB2
@@ -98,6 +99,7 @@ private:
     bool _connected;
     static std::condition_variable _cv;
     static std::mutex _mtx;
+    static bool _available;
 #endif  /* ENABLE_LIBSMB2 */
 
 };
