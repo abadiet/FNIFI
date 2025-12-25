@@ -133,7 +133,13 @@ package fnifi {
         }
 
         enum Kind {
+            +KIND
+            +SIZE
             +CTIME
+            +MTIME
+            +WIDTH
+            +HEIGHT
+            +DURATION
             +XMP
             +EXIF
             +IPTC
@@ -180,7 +186,6 @@ package fnifi {
             +getLocalPreviewFilePath(id : fileId_t) : std::string
             +getLocalCopyFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
-            +getKind(id : fileId_t) : Kind
             +read(id : fileId_t, nocache: bool := false) : fileBuf_t
             +getName() : std::string
         }
@@ -190,6 +195,8 @@ package fnifi {
             -_sortScore : expr_t
             -_isFilteredOut : bool
             -_helper : const IFileHelper*
+            -{static} StartWith(buf : const fileBuf_t&, chars: const char*, n: size_t
+            +{static} GetKind(buf : const fileBuf_t&) : Kind
             +File(id : fileId_t, helper : const IFileHelper*)
             +operator==(other : const File&) : bool
             +getId() : fileId_t
@@ -198,8 +205,7 @@ package fnifi {
             +getLocalCopyFilePath() : std::string
             +getStats() : struct stat
             +getKind() : Kind
-            +getMetadata(os : std::ostream&, type : expression::Kind,
-            key : const std::string&) : std::ostream&
+            +getValue(type : expression::Kind, key : const std::string&) : expr_t
             +read(nocache: bool := false) : fileBuf_t
             +setSortingScore(score : expr_t)
             +setIsFilteredOut(isFilteredOut : bool)
@@ -219,8 +225,6 @@ package fnifi {
             -_availableIds : std::unordered_set<filedId_t>
             -_maxCopiesSz: const size_t
             -_copiesSz: size_t
-            -{static} GetKind(buf : const fileBuf_t&) : Kind
-            -{static} StartWith(buf : const fileBuf_t&, chars: const char*, n: size_t
             -{static} makePreview(const cv::Mat& img) : fileBuf_t
             offset: difference_type := 0) : bool
             -removePreviewFile(id : fileId_t)
@@ -238,7 +242,6 @@ package fnifi {
             +getLocalPreviewFilePath(id : fileId_t) : std::string
             +getLocalCopyFilePath(id : fileId_t) : std::string
             +getStats(id : fileId_t) : struct stat
-            +getKind(id : fileId_t) : Kind
             +read(id : fileId_t, nocache: bool := false) : fileBuf_t
             +getName() : std::string
             +begin() : std::unordered_map<fileId_t, File>::const_iterator

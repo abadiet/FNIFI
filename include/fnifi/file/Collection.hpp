@@ -40,7 +40,6 @@ public:
     std::string getLocalPreviewFilePath(fileId_t id) override;
     std::string getLocalCopyFilePath(fileId_t id) override;
     struct stat getStats(fileId_t id) override;
-    Kind getKind(fileId_t id) override;
     fileBuf_t read(fileId_t id, bool nocache = false) override;
     std::string getName() const override;
     std::unordered_map<fileId_t, File>::const_iterator begin() const;
@@ -68,9 +67,6 @@ private:
         };
     };
 
-    static Kind GetKind(const fileBuf_t& buf);
-    static bool StartWith(const fileBuf_t& buf, const char* chars, size_t n,
-                          fileBuf_t::iterator::difference_type offset = 0);
 #ifdef ENABLE_OPENCV
     static fileBuf_t makePreview(const cv::Mat& img);
 #endif  /* ENABLE_OPENCV */

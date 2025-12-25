@@ -8,7 +8,7 @@ using namespace fnifi::expression;
 
 Kind Variable::GetKind(const std::string& name) {
     if (name == "ctime") return Kind::CTIME;
-    return Kind::UNKOWN;
+    return Kind::UNKNOWN;
 }
 
 void Variable::Uncache(const utils::SyncDirectory& sync,
@@ -36,7 +36,7 @@ Variable::Variable(const std::string& key,
         _name = key.substr(pos + 1);
     }
 
-    if (_type == UNKOWN) {
+    if (_type == UNKNOWN) {
         std::ostringstream msg;
         msg << "Invalid key \"" << key << "\"";
         ELOG("Variable", this, msg.str())
@@ -50,19 +50,5 @@ expr_t Variable::getValue(const file::File* file) {
     /* WARNING: the actual file wrapped by the variable may not exists here
      * (but file != nullptr) */
 
-    /* TODO consider using File::getMetadata */
-    switch (_type) {
-        case CTIME:
-            {
-                const auto time = file->getStats().st_ctimespec;
-                return static_cast<expr_t>(S_TO_NS(time.tv_sec) + time.tv_nsec
-                                           );
-            }
-        case UNKOWN:
-            throw std::runtime_error("Bad Metadata's type");
-        case EXIF:
-        case XMP:
-        case IPTC:
-            TODO
-    }
+    return file->getValue(_type, _name);
 }

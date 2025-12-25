@@ -16,7 +16,6 @@ public:
     virtual std::string getLocalPreviewFilePath(fileId_t id) = 0;
     virtual std::string getLocalCopyFilePath(fileId_t id) = 0;
     virtual struct stat getStats(fileId_t id) = 0;
-    virtual Kind getKind(fileId_t id) = 0;
     virtual fileBuf_t read(fileId_t id, bool nocache = false) = 0;
     virtual std::string getName() const = 0;
 };
