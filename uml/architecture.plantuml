@@ -267,7 +267,7 @@ package fnifi {
 
         struct DirectoryIterator::Entry {
             +path : std::string
-            +ctime : struct timespec
+            +mtime : struct timespec
             +operator==(other : const Entry&)
         }
 
