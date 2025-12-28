@@ -213,12 +213,10 @@ expr_t File::ParseLatLong(const std::vector<double>& coord,
 }
 
 const Exiv2::Image::UniquePtr File::openExiv2Image() const {
-    const auto data = _helper->read(_id, false);
+    const auto path = _helper->getLocalCopyFilePath(_id);
     Exiv2::Image::UniquePtr image;
     try {
-        image = Exiv2::ImageFactory::open(
-            static_cast<const Exiv2::byte*>(data.data()),
-            data.size());
+        image = Exiv2::ImageFactory::open(path);
     } catch (Exiv2::Error&) {
         return nullptr;
     }

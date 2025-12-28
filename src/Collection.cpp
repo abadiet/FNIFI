@@ -505,8 +505,8 @@ std::string Collection::getLocalCopyFilePath(fileId_t id) {
     }
 
     if (_copiesSz > _maxCopiesSz) {
-        ILOG("Collection", this, "Copies' cache is too large: about to remove "
-             "some cache")
+        ILOG("Collection", this, "Copies' cache is too large (" << _copiesSz
+             << "): about to remove some cache")
         /* copies cache is full: remove the half oldest */
         std::set<FileTimed, FileTimed::TimeDescending> files;
         for (const auto& entry : std::filesystem::directory_iterator(
