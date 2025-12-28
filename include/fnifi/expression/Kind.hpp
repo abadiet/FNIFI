@@ -18,15 +18,15 @@ enum Kind {
     LATITUDE,  /* latitude, in milliarcseconds ([-324000000, 32400000]), where the file has been created */
     LONGITUDE,  /* longitude, in milliarcseconds ([-324000000, 32400000]), where the file has been created */
     ALTITUDE,  /* altitude, in meters from the sea level, at the original location of the file creation */
-   // ORIENTATION,  /* orientation where the file has been created */
-   // SPEED,  /* speed when the file has been created */
-   // EXPOSURE_TIME,
-   // F_NUMBER,
-   // ISO,
-   // SHUTTER_SPEED,
-   // APERTURE,
-   // FOCAL_LENGHT,
-   // FLASH,  /* boolean value indicating if the flash was active or not */
+    // ORIENTATION,  /* orientation where the file has been created */
+    // SPEED,  /* speed when the file has been created */
+    // EXPOSURE_TIME,
+    // F_NUMBER,
+    // ISO,
+    // SHUTTER_SPEED,
+    // APERTURE,
+    // FOCAL_LENGHT,
+    // FLASH,  /* boolean value indicating if the flash was active or not */
     XMP,      /* XMP generic metadata */
     EXIF,     /* EXIF generic metadata */
     IPTC,     /* IPTC generic metadata */

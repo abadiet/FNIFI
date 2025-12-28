@@ -7,7 +7,16 @@ using namespace fnifi;
 using namespace fnifi::expression;
 
 Kind Variable::GetKind(const std::string& name) {
+    if (name == "kind") return Kind::KIND;
+    if (name == "size") return Kind::SIZE;
     if (name == "ctime") return Kind::CTIME;
+    if (name == "mtime") return Kind::MTIME;
+    if (name == "width") return Kind::WIDTH;
+    if (name == "height") return Kind::HEIGHT;
+    if (name == "duration") return Kind::DURATION;
+    if (name == "latitude") return Kind::LATITUDE;
+    if (name == "longitude") return Kind::LONGITUDE;
+    if (name == "altitude") return Kind::ALTITUDE;
     return Kind::UNKNOWN;
 }
 

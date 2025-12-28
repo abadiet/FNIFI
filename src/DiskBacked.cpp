@@ -47,7 +47,7 @@ DiskBacked::~DiskBacked() {
 }
 
 void DiskBacked::addCollection(const file::Collection& coll) {
-    /* create or open the results.fnifi file */
+    /* create or open the file */
     const auto name = coll.getName();
     const auto filename = utils::Hash(name) / _parentDirName / _keyHash;
     bool ate = false;
