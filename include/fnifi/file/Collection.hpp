@@ -3,7 +3,6 @@
 
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils/SyncDirectory.hpp"
-#include "fnifi/file/Kind.hpp"
 #include "fnifi/file/IFileHelper.hpp"
 #include "fnifi/file/File.hpp"
 #include "fnifi/utils/utils.hpp"
@@ -19,6 +18,9 @@
 
 
 namespace fnifi {
+
+class FNIFI;
+
 namespace file {
 
 class Collection : virtual public IFileHelper {
@@ -31,10 +33,6 @@ public:
      */
     Collection(Collection&& other) noexcept;
     ~Collection() override;
-    void index(
-        std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
-        std::unordered_set<const file::File*>& added,
-        std::unordered_set<file::File*>& modified);
     void defragment();
     std::string getFilePath(fileId_t id) override;
     std::string getLocalPreviewFilePath(fileId_t id) override;
@@ -47,6 +45,14 @@ public:
     std::unordered_map<fileId_t, File>::iterator begin();
     std::unordered_map<fileId_t, File>::iterator end();
     size_t size() const;
+
+protected:
+    void index(
+        std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
+        std::unordered_set<const file::File*>& added,
+        std::unordered_set<file::File*>& modified);
+
+    friend class fnifi::FNIFI;
 
 private:
     using offset_t = size_t;
