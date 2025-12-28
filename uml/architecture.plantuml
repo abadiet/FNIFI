@@ -242,7 +242,7 @@ package fnifi {
             +begin() : std::unordered_map<fileId_t, File>::iterator
             +end() : std::unordered_map<fileId_t, File>::iterator
             +size() : size_t
-            #index(...)
+            -index(...)
             -{static} makePreview(const cv::Mat& img) : fileBuf_t
             offset: difference_type := 0) : bool
             -removePreviewFile(id : fileId_t)

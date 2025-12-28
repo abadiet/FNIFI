@@ -46,14 +46,6 @@ public:
     std::unordered_map<fileId_t, File>::iterator end();
     size_t size() const;
 
-protected:
-    void index(
-        std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
-        std::unordered_set<const file::File*>& added,
-        std::unordered_set<file::File*>& modified);
-
-    friend class fnifi::FNIFI;
-
 private:
     using offset_t = size_t;
     using lenght_t = unsigned short;
@@ -73,6 +65,10 @@ private:
         };
     };
 
+    void index(
+        std::unordered_set<std::pair<const file::File*, fileId_t>>& removed,
+        std::unordered_set<const file::File*>& added,
+        std::unordered_set<file::File*>& modified);
 #ifdef ENABLE_OPENCV
     static fileBuf_t makePreview(const cv::Mat& img);
 #endif  /* ENABLE_OPENCV */
@@ -90,6 +86,8 @@ private:
     std::unordered_set<fileId_t> _availableIds;
     const size_t _maxCopiesSz;
     size_t _copiesSz;
+
+    friend FNIFI;
 };
 
 }  /* namespace file */
