@@ -14,8 +14,11 @@ foreach(SUBDIR ${SUBDIRS})
             add_executable(${TARGET_NAME} ${SOURCES})
 
             # Flags
-            target_compile_options(${TARGET_NAME} PRIVATE
-            $<$<CXX_COMPILER_ID:AppleClang>:-O3 -Wall -Wextra -Werror
+            set(SXEVAL_FLAGS -Wno-deprecated-redundant-constexpr-static-def)
+            set(LIBSMB2_FLAGS -Wno-reserved-macro-identifier
+                -Wno-zero-length-array)
+            target_compile_options(${PROJECT_NAME} PRIVATE
+                $<$<CXX_COMPILER_ID:AppleClang>:-O0 -g -Wall -Wextra -Werror
                 -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion
                 -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
                 -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
@@ -25,15 +28,33 @@ foreach(SUBDIR ${SUBDIRS})
                 -Wconditional-uninitialized -Wassign-enum
                 -Wunused-exception-parameter -Wcovered-switch-default
                 -Wno-c++98-compat -Wno-c++98-compat-pedantic
-                -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors
-                ${SXEVAL_FLAGS}>
-            $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror -Wfloat-equal
-                -Wundef -Wcast-align -Wwrite-strings -Wconversion
+                -Wno-padded -Wno-switch-default
+                -Wno-unsafe-buffer-usage-in-libc-call
+                -Wno-exit-time-destructors -Wno-global-constructors
+                ${SXEVAL_FLAGS} ${LIBSMB2_FLAGS}>
+                $<$<CXX_COMPILER_ID:GNU>:-O3 -Wall -Wextra -Werror
+                -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion
                 -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings
                 -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2
-                -Wimplicit-fallthrough -Wno-padded -Wno-exit-time-destructors
-                -Wno-global-constructors ${SXEVAL_FLAGS}>
+                -Wimplicit-fallthrough -Wno-padded
+                -Wno-unsafe-buffer-usage-in-libc-call
+                -Wno-exit-time-destructors -Wno-global-constructors
+                ${SXEVAL_FLAGS} ${LIBSMB2_FLAGS}>
             )
+            if(FNIFI_DEBUG)
+                target_compile_options(${TARGET_NAME} PRIVATE -DFNIFI_DEBUG)
+            endif()
+            if(ENABLE_SAMBA)
+                target_compile_options(${TARGET_NAME} PRIVATE -DENABLE_SAMBA)
+            elseif(ENABLE_LIBSMB2)
+                target_compile_options(${TARGET_NAME} PRIVATE -DENABLE_LIBSMB2)
+            endif()
+            if(ENABLE_OPENCV)
+                target_compile_options(${TARGET_NAME} PRIVATE -DENABLE_OPENCV)
+            endif()
+            if(ENABLE_EXIV2)
+                target_compile_options(${TARGET_NAME} PRIVATE -DENABLE_EXIV2)
+            endif()
 
             # Dependencies
             target_link_libraries(${TARGET_NAME} PRIVATE fnifi)
