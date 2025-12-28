@@ -50,5 +50,9 @@ expr_t Variable::getValue(const file::File* file) {
     /* WARNING: the actual file wrapped by the variable may not exists here
      * (but file != nullptr) */
 
-    return file->getValue(_type, _name);
+    expr_t val;
+    if (file->get(val, _type, _name)) {
+        return val;
+    }
+    return EMPTY_EXPR_T;
 }

@@ -1,4 +1,5 @@
 #include "fnifi/file/File.hpp"
+#include <vector>
 
 
 using namespace fnifi;
@@ -46,472 +47,6 @@ Kind File::getKind() const {
     }
     WLOG("File", this, "Unable to read the file: returning Kind::UNKNOWN")
     return Kind::UNKNOWN;
-}
-
-expr_t File::getValue(expression::Kind kind, const std::string& key) const {
-    DLOG("File", this, "Receive request for metadata of kind " << kind
-         << " and key \"" << key << "\"")
-
-    switch (kind) {
-        case expression::KIND:
-            return static_cast<expr_t>(getKind());
-        case expression::SIZE:
-        {
-            const auto path = _helper->getLocalCopyFilePath(_id);
-            return static_cast<expr_t>(std::filesystem::file_size(path));
-        }
-        case expression::CTIME:
-        {
-#ifdef ENABLE_EXIV2
-            /*
-             * TODO: to consider
-             * Xmp.video.DateTimeOriginal
-             * Xmp.video.CreateDate
-             * Xmp.video.CreationDate
-             * Xmp.audio.DateTimeOriginal
-             * Xmp.audio.CreateDate
-             * Xmp.audio.CreationDate
-             * Xmp.exif.DateTimeOriginal
-             * Xmp.exif.DateTimeDigitized
-             * Iptc.Application2.DateCreated
-             * Iptc.Application2.TimeCreated
-             */
-            const auto image = openExiv2Image();
-            if (image != nullptr) {
-                {
-                    const auto date = GetMetadata(image,
-                        expression::Kind::EXIF, "Exif.Photo.DateTimeOriginal");
-                    if (date != "") {
-                        const auto offset = GetMetadata(image,
-                            expression::Kind::EXIF,
-                            "Exif.Photo.OffsetTimeOriginal");
-                        const auto subsec = GetMetadata(image,
-                            expression::Kind::EXIF,
-                            "Exif.Photo.SubSecTimeOriginal");
-                        const auto res = utils::ParseTimestamp(date,
-                            offset, subsec);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.xmp.CreateDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampISO8601(
-                            date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.video.DateUTC");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.video.TrackCreateDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.video.MediaCreateDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.audio.TrackCreateDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.audio.MediaCreateDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image,
-                        expression::Kind::EXIF,
-                        "Exif.Photo.DateTimeDigitized");
-                    if (date != "") {
-                        const auto offset = GetMetadata(image,
-                            expression::Kind::EXIF,
-                            "Exif.Photo.OffsetTimeDigitized");
-                        const auto subsec = GetMetadata(image,
-                            expression::Kind::EXIF,
-                            "Exif.Photo.SubSecTimeDigitized");
-                        const auto res = utils::ParseTimestamp(date,
-                            offset, subsec);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.photoshop.DateCreated");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampISO8601(
-                            date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-            }
-#endif  /* ENABLE_EXIV2 */
-            const auto time = _helper->getStats(_id).st_ctimespec;
-            return static_cast<expr_t>(S_TO_NS(time.tv_sec) + time.tv_nsec);
-        }
-        case expression::MTIME:
-        {
-#ifdef ENABLE_EXIV2
-            /*
-             * TODO: to consider
-             * Xmp.tiff.DateTime
-             */
-            const auto image = openExiv2Image();
-            if (image != nullptr) {
-                {
-                    const auto date = GetMetadata(image,
-                        expression::Kind::EXIF, "Exif.Photo.DateTime");
-                    if (date != "") {
-                        const auto offset = GetMetadata(image,
-                            expression::Kind::EXIF, "Exif.Photo.OffsetTime");
-                        const auto subsec = GetMetadata(image,
-                            expression::Kind::EXIF, "Exif.Photo.SubSecTime");
-                        const auto res = utils::ParseTimestamp(date, offset,
-                                                               subsec);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.xmp.ModifyDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampISO8601(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                        "Xmp.video.ModificationDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.video.TrackModifyDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.video.MediaModifyDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.audio.TrackModifyDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-                {
-                    const auto date = GetMetadata(image, expression::Kind::XMP,
-                                                  "Xmp.audio.MediaModifyDate");
-                    if (date != "") {
-                        const auto res = utils::ParseTimestampMov(date);
-                        if (res.count() != 0) {
-                            return static_cast<expr_t>(res.count());
-                        }
-                    }
-                }
-            }
-#endif  /* ENABLE_EXIV2 */
-            const auto time = _helper->getStats(_id).st_mtimespec;
-            return static_cast<expr_t>(S_TO_NS(time.tv_sec) + time.tv_nsec);
-        }
-        case expression::WIDTH:
-        {
-#ifdef ENABLE_EXIV2
-            const auto image = openExiv2Image();
-            if (image != nullptr) {
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::EXIF, "Exif.Photo.PixelXDimension");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.SourceImageWidth");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.Width");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-            }
-            WLOG("File", this, "Cannot find width: returning EMPTY_EXPR_T")
-            return EMPTY_EXPR_T;
-#else  /* ENABLE_EXIV2 */
-            WLOG("File", this, "Cannot retrieve width as Exiv2 is disabled: "
-                 "returning EMPTY_EXPR_T")
-            return EMPTY_EXPR_T;
-#endif  /* ENABLE_EXIV2 */
-        }
-        case expression::HEIGHT:
-        {
-#ifdef ENABLE_EXIV2
-            const auto image = openExiv2Image();
-            if (image != nullptr) {
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::EXIF, "Exif.Photo.PixelYDimension");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.SourceImageHeight");
-                        if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.Height");
-                    if (!valStr.empty()) {
-                    try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-            }
-            WLOG("File", this, "Cannot find height: returning EMPTY_EXPR_T")
-            return EMPTY_EXPR_T;
-#else  /* ENABLE_EXIV2 */
-            WLOG("File", this, "Cannot retrieve height as Exiv2 is disabled: "
-                 "returning EMPTY_EXPR_T")
-            return EMPTY_EXPR_T;
-#endif  /* ENABLE_EXIV2 */
-        }
-        case expression::DURATION:
-        {
-#ifdef ENABLE_EXIV2
-            const auto image = openExiv2Image();
-            if (image != nullptr) {
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.Duration");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val * 1000000L);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.MediaDuration");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val * 1000000000L);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.TrackDuration");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val * 1000000000L);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.audio.MediaDuration");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val * 1000000000L);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto valStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.audio.TrackDuration");
-                    if (!valStr.empty()) {
-                        try {
-                            const auto val = std::stol(valStr);
-                            if (val != 0) {
-                                return static_cast<expr_t>(val * 1000000000L);
-                            }
-                        } catch (...) {
-                        }
-                    }
-                }
-                {
-                    const auto nStr = GetMetadata(image,
-                        expression::Kind::XMP, "Xmp.video.FrameCount");
-                    if (!nStr.empty()) {
-                        const auto usStr = GetMetadata(image,
-                            expression::Kind::XMP,
-                            "Xmp.video.MicroSecPerFrame");
-                        if (!usStr.empty()) {
-                            try {
-                                const auto n = std::stol(nStr);
-                                const auto us = std::stol(usStr);
-                                if (n != 0 && us != 0) {
-                                    return static_cast<expr_t>(n * us * 1000L);
-                                }
-                            } catch (...) {
-                            }
-                        }
-                    }
-                }
-            }
-            WLOG("File", this, "Cannot find duration: returning 0")
-            return 0;
-#else  /* ENABLE_EXIV2 */
-            WLOG("File", this, "Cannot retrieve duration as Exiv2 is disabled:"
-                 " returning 0")
-            return 0;
-#endif  /* ENABLE_EXIV2 */
-        }
-        case expression::EXIF:
-        case expression::XMP:
-        case expression::IPTC:
-        {
-#ifdef ENABLE_EXIV2
-            auto image = openExiv2Image();
-            if (image == nullptr) {
-                return EMPTY_EXPR_T;
-            }
-            const auto valueStr = GetMetadata(image, kind, key);
-            try {
-                return std::stol(valueStr);
-            } catch(...) {
-                WLOG("File", this, "Failed to retrieve metadata for kind "
-                     << kind << " and key \"" << key << "\": cannot convert \""
-                     << valueStr
-                     << "\" to type expr_t: returning EMPTY_EXPR_T")
-                return EMPTY_EXPR_T;
-            }
-#else  /* ENABLE_EXIV2 */
-            WLOG("File", this, "Cannot retrieve metadata for kind " << kind
-                 << " and key \"" << key
-                 << "\" as Exiv2 is disabled: returning EMPTY_EXPR_T")
-            return EMPTY_EXPR_T;
-#endif  /* ENABLE_EXIV2 */
-            }
-        case expression::UNKNOWN:
-            throw std::runtime_error("Bad metadata's kind");
-    }
 }
 
 fileBuf_t File::read(bool nocache) const {
@@ -600,6 +135,83 @@ bool File::StartWith(const fileBuf_t& buf, const char* chars, size_t n,
 }
 
 #ifdef ENABLE_EXIV2
+expr_t File::ParseTimestamp(const std::string& date, const std::string& offset,
+    const std::string& subsec)
+{
+    std::istringstream iss(date);
+    try {
+        std::tm tm = {};
+        iss >> std::get_time(&tm, "%Y:%m:%d %H:%M:%S");
+        if (iss.fail()) {
+            return EMPTY_EXPR_T;
+        }
+
+        const auto time = std::mktime(&tm) - timezone;
+        if (time == -1) {
+            return EMPTY_EXPR_T;
+        }
+
+        const auto tp = std::chrono::system_clock::from_time_t(time);
+        auto nstime = static_cast<expr_t>(std::chrono::duration_cast<
+            std::chrono::nanoseconds>(tp.time_since_epoch()).count());
+
+        if (offset != "") {
+            const auto sign = (offset[0] == '+') ? 1LL : -1LL;
+            const auto hours = std::stol(offset.substr(1, 2));
+            const auto minutes = std::stol(offset.substr(4, 2));
+            nstime -= sign * (hours * 3600000000000L + minutes * 60000000000L);
+        }
+
+        if (subsec != "") {
+            nstime += std::stol(subsec);
+        }
+
+        return nstime;
+    } catch (...) {
+        return EMPTY_EXPR_T;
+    }
+}
+
+expr_t File::ParseTimestampISO8601(const std::string& date) {
+    const auto offsetPos = date.find_last_of("+-");
+    auto newDate = date.substr(0, offsetPos);
+    std::replace(newDate.begin(), newDate.end(), 'T', ' ');
+    std::replace(newDate.begin(), newDate.end(), '-', ':');
+    const auto offset = date.substr(offsetPos);
+    return ParseTimestamp(newDate, offset, "");
+}
+
+expr_t File::ParseTimestampMov(const std::string& date) {
+    try {
+        return std::stol(date) - 2082844800L;
+    } catch (...) {
+        return EMPTY_EXPR_T;
+    }
+}
+
+expr_t File::ParseLatLong(const std::vector<double>& coord,
+                          const std::string& ref)
+{
+    /*
+     * input:
+     *     coord = [degrees, minutes, seconds]
+     *     ref = (N|S|W|E)
+     * output: value in [-324000000, 324000000] milliarcseconds
+     */
+    if (coord.size() < 3) {
+        return EMPTY_EXPR_T;
+    }
+
+    auto mas = static_cast<expr_t>(coord[0] * 3600000.0 + (coord[1] * 60000.0)
+                                   + coord[2] * 1000.0);
+
+    if (ref == "S" || ref == "W") {
+        mas *= -1;
+    }
+
+    return mas;
+}
+
 const Exiv2::Image::UniquePtr File::openExiv2Image() const {
     const auto data = _helper->read(_id, false);
     Exiv2::Image::UniquePtr image;
@@ -621,63 +233,16 @@ const Exiv2::Image::UniquePtr File::openExiv2Image() const {
     return image;
 }
 
-std::string File::GetMetadata(const Exiv2::Image::UniquePtr& image,
-                              expression::Kind kind,
-                              const std::string& key)
-{
-    try {
-        switch (kind) {
-            case expression::XMP:
-                {
-                    const auto& meta = image->xmpData();
-                    const auto pos = meta.findKey(
-                        Exiv2::XmpKey(key));
-                    if (pos != meta.end()) {
-                        std::ostringstream valOss;
-                        valOss << pos->value();
-                        return valOss.str();
-                    }
-                }
-                break;
-            case expression::EXIF:
-                {
-                    const auto& meta = image->exifData();
-                    const auto pos = meta.findKey(
-                        Exiv2::ExifKey(key));
-                    if (pos != meta.end()) {
-                        std::ostringstream valOss;
-                        valOss << pos->value();
-                        return valOss.str();
-                    }
-                }
-                break;
-            case expression::IPTC:
-                {
-                    const auto& meta = image->iptcData();
-                    const auto pos = meta.findKey(
-                        Exiv2::IptcKey(key));
-                    if (pos != meta.end()) {
-                        std::ostringstream valOss;
-                        valOss << pos->value();
-                        return valOss.str();
-                    }
-                }
-                break;
-            case expression::KIND:
-            case expression::SIZE:
-            case expression::CTIME:
-            case expression::MTIME:
-            case expression::WIDTH:
-            case expression::HEIGHT:
-            case expression::DURATION:
-            case expression::UNKNOWN:
-                throw std::runtime_error("File::GetMetadata should be called "
-                                         "with kind EXIF, XMP and IPTC only");
-        }
-    } catch (Exiv2::Error&) {
-        return "";
+expr_t File::ParseAltitude(double altitude, char ref) {
+    /*
+     * input:
+     *    altitude: altitude in meters
+     *    ref: 0 = below sea level, 1 = above sea level
+     */
+    auto res = static_cast<expr_t>(altitude * 1000.0);
+    if (ref == 0 && res > 0) {
+        res *= -1;
     }
-    /* key not found */
-    return "";
+    return res;
 }
 #endif  /* ENABLE_EXIV2 */

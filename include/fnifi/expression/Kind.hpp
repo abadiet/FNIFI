@@ -15,9 +15,9 @@ enum Kind {
     WIDTH,
     HEIGHT,
     DURATION,  /* in nanoseconds, fallback to 0 */
-   // LATITUDE,  /* latitude where the file has been created */
-   // LONGITUDE,  /* longitude where the file has been created */
-   // ALTITUDE,  /* altitude where the file has been created */
+    LATITUDE,  /* latitude, in milliarcseconds ([-324000000, 32400000]), where the file has been created */
+    LONGITUDE,  /* longitude, in milliarcseconds ([-324000000, 32400000]), where the file has been created */
+    ALTITUDE,  /* altitude, in meters from the sea level, at the original location of the file creation */
    // ORIENTATION,  /* orientation where the file has been created */
    // SPEED,  /* speed when the file has been created */
    // EXPOSURE_TIME,

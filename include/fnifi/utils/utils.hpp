@@ -84,12 +84,6 @@ std::istream& Deserialize(std::istream& is, std::vector<T>& var);
 uint32_t fnv1a(const std::string& s);
 std::string Hash(const std::string& s);
 
-std::chrono::nanoseconds ParseTimestamp(const std::string& date,
-                                         const std::string& offset = "",
-                                         const std::string& subsec = "");
-std::chrono::nanoseconds ParseTimestampISO8601(const std::string& date);
-std::chrono::nanoseconds ParseTimestampMov(const std::string& date);
-
 }  /* namespace utils */
 }  /* namespace fnifi */
 
@@ -156,66 +150,6 @@ inline std::string fnifi::utils::Hash(const std::string& s) {
     }
     res += "_" + std::to_string(fnv1a(s));
     return res;
-}
-
-inline std::chrono::nanoseconds fnifi::utils::ParseTimestamp(
-    const std::string& date, const std::string& offset,
-    const std::string& subsec)
-{
-    std::istringstream iss(date);
-    try {
-        std::tm tm = {};
-        iss >> std::get_time(&tm, "%Y:%m:%d %H:%M:%S");
-        if (iss.fail()) {
-            return std::chrono::nanoseconds(0);
-        }
-
-        const auto time = std::mktime(&tm) - timezone;
-        if (time == -1) {
-            return std::chrono::nanoseconds(0);
-        }
-
-        const auto tp = std::chrono::system_clock::from_time_t(time);
-        auto nstime = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            tp.time_since_epoch()).count();
-
-        if (offset != "") {
-            const auto sign = (offset[0] == '+') ? 1LL : -1LL;
-            const auto hours = std::stoll(offset.substr(1, 2));
-            const auto minutes = std::stoll(offset.substr(4, 2));
-            nstime -= sign * (hours * 3600000000000LL +
-                minutes * 60000000000LL);
-        }
-
-        if (subsec != "") {
-            nstime += std::stoll(subsec);
-        }
-
-        return std::chrono::nanoseconds(nstime);
-    } catch (...) {
-        return std::chrono::nanoseconds(0);
-    }
-}
-
-inline std::chrono::nanoseconds fnifi::utils::ParseTimestampISO8601(
-    const std::string& date)
-{
-    const auto offsetPos = date.find_last_of("+-");
-    auto newDate = date.substr(0, offsetPos);
-    std::replace(newDate.begin(), newDate.end(), 'T', ' ');
-    std::replace(newDate.begin(), newDate.end(), '-', ':');
-    const auto offset = date.substr(offsetPos);
-    return fnifi::utils::ParseTimestamp(newDate, offset, "");
-}
-
-inline std::chrono::nanoseconds fnifi::utils::ParseTimestampMov(
-    const std::string& date)
-{
-    try {
-        return std::chrono::nanoseconds(std::stol(date) - 2082844800);
-    } catch (...) {
-        return std::chrono::nanoseconds(0);
-    }
 }
 
 #endif  /* FNIFI_UTILS_UTILS_HPP */

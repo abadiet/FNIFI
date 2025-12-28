@@ -140,6 +140,9 @@ package fnifi {
             +WIDTH
             +HEIGHT
             +DURATION
+            +LATITUDE
+            +LONGITUDE
+            +ALTITUDE
             +XMP
             +EXIF
             +IPTC
@@ -205,7 +208,7 @@ package fnifi {
             +getLocalCopyFilePath() : std::string
             +getStats() : struct stat
             +getKind() : Kind
-            +getValue(type : expression::Kind, key : const std::string&) : expr_t
+            +get(T& result, type : expression::Kind, key : const std::string&) : expr_t
             +read(nocache: bool := false) : fileBuf_t
             +setSortingScore(score : expr_t)
             +setIsFilteredOut(isFilteredOut : bool)
