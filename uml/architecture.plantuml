@@ -58,9 +58,9 @@ package fnifi {
             -_abspath : const std::filesystem::path&
             -_relapath : const std::filesystem::path&
             -_syncDisabled : bool
+            -_lastMTime: struct timespec
             -setup(ate : bool)
-            -FileStream(abspath : const std::filesystem::path&,
-            relapath : const std::filesystem::path&, ate : bool, sync : const SyncDirectory&)
+            -FileStream(...)
             +FileStream(sync : const SyncDirectory&, filepath : const std::filesystem::path&,
             ate : bool := false)
             +pull()
@@ -74,10 +74,8 @@ package fnifi {
         class SyncDirectory {
             -_conn : const IConnection*
             -_path : const std::filesystem::path
-            -setupFileStream(filepath : const std::filesystem::path&,
-            mkdir : bool := true) : std::filesystemm::path
-            -pull(abspath : const std::filesystem::path&,
-            relapath : const std::filesystem::path&) : bool
+            -setupFileStream(...) : std::filesystem::path
+            -pull(...) : struct timespec
             -push(relapath : const std::filesystem::path&, buf : const fileBuf_t&)
             +SyncDirectory(conn : const IConnection*, path : const std::string&)
             +open(filepath : const std::filesystem::path&, ate : bool := false,

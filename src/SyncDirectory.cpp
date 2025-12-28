@@ -7,8 +7,8 @@ using namespace fnifi::utils;
 SyncDirectory::FileStream::FileStream(const SyncDirectory& sync,
                                       const std::filesystem::path& filepath,
                                       bool ate)
-: _sync(sync), _abspath(sync.setupFileStream(filepath)), _relapath(filepath),
-    _syncDisabled(false)
+: _sync(sync), _abspath(sync.setupFileStream(filepath, _lastMtime)),
+    _relapath(filepath), _syncDisabled(false)
 {
     setup(ate);
 }
@@ -25,7 +25,9 @@ bool SyncDirectory::FileStream::pull() {
 
         close();
 
-        const auto hasChanged = _sync.pull(_abspath, _relapath);
+        const auto newLastMTime = _sync.pull(_abspath, _relapath, _lastMtime);
+        const auto hasChanged = (newLastMTime > _lastMtime);
+        _lastMtime = newLastMTime;
 
         open(_abspath, std::ios::in | std::ios::out | std::ios::binary);
 
@@ -89,8 +91,10 @@ std::filesystem::path SyncDirectory::FileStream::getPath(bool relative) const {
 
 SyncDirectory::FileStream::FileStream(const std::filesystem::path& abspath,
                                       const std::filesystem::path& relapath,
-                                      bool ate, const SyncDirectory& sync)
-: _sync(sync), _abspath(abspath), _relapath(relapath), _syncDisabled(false)
+                                      bool ate, const SyncDirectory& sync,
+                                      struct timespec lastMTime)
+: _sync(sync), _abspath(abspath), _relapath(relapath), _syncDisabled(false),
+    _lastMtime(lastMTime)
 {
     setup(ate);
 }
@@ -128,13 +132,15 @@ SyncDirectory::SyncDirectory(connection::IConnection* conn,
 SyncDirectory::FileStream SyncDirectory::open(
     const std::filesystem::path& filepath, bool ate, bool mkdir) const
 {
-    const auto abspath = setupFileStream(filepath, mkdir);
+    struct timespec lastMTime = {0, 0};
+    const auto abspath = setupFileStream(filepath, lastMTime, mkdir);
 
-    return FileStream(abspath, filepath, ate, *this);
+    return FileStream(abspath, filepath, ate, *this, lastMTime);
 }
 
 std::filesystem::path SyncDirectory::setupFileStream(
-    const std::filesystem::path& filepath, bool mkdir) const
+    const std::filesystem::path& filepath, struct timespec& lastMTime,
+    bool mkdir) const
 {
     DLOG("SyncDirectory", this, "Setup directories and file for a FileStream "
          "instance")
@@ -147,7 +153,7 @@ std::filesystem::path SyncDirectory::setupFileStream(
         _conn->createDirs(filepath.parent_path());
     }
 
-    pull(abspath, filepath);
+    lastMTime = pull(abspath, filepath, lastMTime);
 
     return abspath;
 }
@@ -171,10 +177,20 @@ void SyncDirectory::createDirs(const std::filesystem::path& dirpath) const {
     _conn->createDirs(dirpath);
 }
 
-bool SyncDirectory::pull(const std::filesystem::path& abspath,
-                         const std::filesystem::path& relapath) const
+struct timespec SyncDirectory::pull(const std::filesystem::path& abspath,
+                                    const std::filesystem::path& relapath,
+                                    const struct timespec& lastMTime) const
 {
-    return _conn->download(relapath, abspath);
+    const auto stats = _conn->getStats(relapath);
+    if (stats.st_size > 0 && stats.st_mtimespec > lastMTime) {
+        /* the file exists and has changed since the last pull */
+        if (_conn->download(relapath, abspath)) {
+            /* TODO: the file may be changed here before the mtime has been
+             * retrieved */
+            return _conn->getStats(relapath).st_mtimespec;
+        }
+    }
+    return lastMTime;
 }
 
 void SyncDirectory::push(const std::filesystem::path& relapath,

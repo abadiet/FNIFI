@@ -5,6 +5,7 @@
 #include "fnifi/utils/utils.hpp"
 #include "fnifi/utils/TempFile.hpp"
 #include <fstream>
+#include <ctime>
 
 
 namespace fnifi {
@@ -27,13 +28,14 @@ public:
     private:
         FileStream(const std::filesystem::path& abspath,
                    const std::filesystem::path& relapath, bool ate,
-                   const SyncDirectory& sync);
+                   const SyncDirectory& sync, struct timespec lastMTime);
         void setup(bool ate);
 
         const SyncDirectory& _sync;
         const std::filesystem::path _abspath;
         const std::filesystem::path _relapath;
         bool _syncDisabled;
+        struct timespec _lastMtime;
 
         friend SyncDirectory;
     };
@@ -49,9 +51,11 @@ public:
 
 private:
     std::filesystem::path setupFileStream(
-        const std::filesystem::path& filepath, bool mkdir = true) const;
-    bool pull(const std::filesystem::path& abspath,
-              const std::filesystem::path& relapath) const;
+        const std::filesystem::path& filepath, struct timespec& lastMTime,
+        bool mkdir = true) const;
+    struct timespec pull(const std::filesystem::path& abspath,
+                         const std::filesystem::path& relapath,
+                         const struct timespec& lastMTime) const;
     void push(const std::filesystem::path& relapath, const fileBuf_t& buf)
         const;
 

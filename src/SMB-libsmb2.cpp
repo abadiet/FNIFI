@@ -164,8 +164,8 @@ struct stat SMB::getStats(const std::filesystem::path& filepath) {
 
     if (smb2_stat(_ctx, filepath.c_str(), &fileStat) != 0) {
         WLOG("SMB", this, "Failed to get the stat of " << filepath
-             << ": will return the default instanciated stat. More: "
-             << smb2_get_error(_ctx))
+             << ": will return the default instanciated stat with a null size."
+             "More: " << smb2_get_error(_ctx))
         fileStat.smb2_size = 0;
     }
 

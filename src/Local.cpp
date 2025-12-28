@@ -43,11 +43,10 @@ struct stat Local::getStats(const std::filesystem::path& filepath) {
     DLOG("Local", this, "Get statistics for " << filepath)
 
     struct stat fileStat;
-    fileStat.st_size = 0;
     if (lstat(filepath.c_str(), &fileStat) != 0) {
-        std::ostringstream msg;
-        msg << "Failed to get stats for '" << filepath << "'";
-        throw std::runtime_error(msg.str());
+        fileStat.st_size = 0;
+        WLOG("Local", this, "Failed to get stats for '" << filepath
+             << ": will return the default instanciated stat with a null size")
     }
     return fileStat;
 }
@@ -57,9 +56,8 @@ fileBuf_t Local::read(const std::filesystem::path& filepath) {
 
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) {
-        std::ostringstream msg;
-        msg << "File '" << filepath << "' cannot be open";
-        throw std::runtime_error(msg.str());
+        WLOG("Local", this, "Failed to open " << filepath
+             << ": will return an empty buffer")
     }
     const fileBuf_t buffer((std::istreambuf_iterator<char>(file)),
                             std::istreambuf_iterator<char>());
@@ -73,9 +71,7 @@ void Local::write(const std::filesystem::path& filepath,
 
     std::ofstream file(filepath, std::ios::binary | std::ios::trunc);
     if (!file.is_open()) {
-        std::ostringstream msg;
-        msg << "File '" << filepath << "' cannot be open";
-        throw std::runtime_error(msg.str());
+        WLOG("SMB", this, "Failed to open " << filepath)
     }
     file.write(reinterpret_cast<const char*>(buffer.data()),
                static_cast<std::streamsize>(buffer.size()));
@@ -113,9 +109,7 @@ void Local::remove(const std::filesystem::path& filepath) {
     DLOG("Local", this, "Remove file " << filepath)
 
     if (std::remove(filepath.c_str()) != 0) {
-        std::ostringstream msg;
-        msg << "File '" << filepath << "' cannot be remove";
-        throw std::runtime_error(msg.str());
+        WLOG("SMB", this, "Failed to remove " << filepath)
     }
 }
 
