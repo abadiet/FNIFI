@@ -22,7 +22,7 @@ class DirectoryIterator {
 public:
     struct Entry {
         const std::string path;
-        const struct timespec ctime;
+        const struct timespec mtime;
         bool operator==(const Entry& other) const;
     };
 

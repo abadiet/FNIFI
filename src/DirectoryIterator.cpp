@@ -57,7 +57,7 @@ DirectoryIterator::DirectoryIterator(void* data, const std::function<
     std::string name;
     auto entry = nextEntry(data, name);
     while (entry != nullptr) {
-        _entries.insert({name, entry->ctime_ts});
+        _entries.insert({name, entry->mtime_ts});
         entry = nextEntry(data, name);
     }
 
@@ -75,8 +75,8 @@ DirectoryIterator::DirectoryIterator(void* data, const std::function<
     auto entry = nextEntry(data, name);
     while (entry != nullptr) {
         _entries.insert({name, {
-            .tv_sec = static_cast<time_t>(entry->st.smb2_ctime),
-            .tv_nsec = static_cast<long>(entry->st.smb2_ctime_nsec),
+            .tv_sec = static_cast<time_t>(entry->st.smb2_mtime),
+            .tv_nsec = static_cast<long>(entry->st.smb2_mtime_nsec),
         }});
         entry = nextEntry(data, name);
     }
@@ -95,7 +95,7 @@ DirectoryIterator::DirectoryIterator(const DirectoryIterator& dirit,
         /* TODO: std::fs::relative is a pretty slow function */
         const auto name = std::filesystem::relative(entry.path, path)
             .string();
-        _entries.insert({name, entry.ctime});
+        _entries.insert({name, entry.mtime});
     }
 
     ILOG("DirectoryIterator", this, "Found " << _entries.size() << " elements")
@@ -127,7 +127,7 @@ void DirectoryIterator::addEntry(const std::filesystem::directory_entry& entry,
     ) {
         struct stat fileStat;
         if (lstat(entry.path().c_str(), &fileStat) == 0) {
-            _entries.insert({entry.path(), fileStat.st_ctimespec});
+            _entries.insert({entry.path(), fileStat.st_mtimespec});
         } else {
             WLOG("DirectoryIterator", this, "Failed to get the metadata of "
                  << entry.path() << ": this file is ignored")

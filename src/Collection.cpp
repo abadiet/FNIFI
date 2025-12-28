@@ -175,10 +175,10 @@ void Collection::index(
     /* check for new files */
     struct timespec mostRecentTime = info.lastIndexing;
     for (const auto& entry : _indexingConn->iterate("")) {
-        if (entry.ctime > info.lastIndexing) {
+        if (entry.mtime > info.lastIndexing) {
             ILOG("Collection", this, "New file " << entry.path)
             /* TODO: check if the file is not already indexed (happens
-             * when removed and then added */
+             * when removed and then added) */
 
             /* add the filepath */
             const auto lenght = static_cast<lenght_t>(entry.path.size());
@@ -211,8 +211,8 @@ void Collection::index(
 
             added.insert(&_files.find(id)->second);
 
-            if (entry.ctime > mostRecentTime) {
-                mostRecentTime = entry.ctime;
+            if (entry.mtime > mostRecentTime) {
+                mostRecentTime = entry.mtime;
             }
         }
     }
