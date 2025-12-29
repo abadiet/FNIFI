@@ -34,7 +34,7 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/DirectoryIterator.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/FNIFI.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/SyncDirectory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Local.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/IFileHelper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/AFileHelper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/File.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/TempFile.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/DiskBacked.cpp
