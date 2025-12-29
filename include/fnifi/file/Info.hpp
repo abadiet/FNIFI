@@ -162,7 +162,7 @@ bool fnifi::file::Info<T>::get(const File* file, T& result) {
     } else {
         /* filling the file up to the position of the value */
         _file->seekp(0, std::ios::end);
-        for (auto i = _nIds; i < id + 1; ++i) {
+        for (auto i = _nIds; i < id; ++i) {
             /* TODO avoid multiples std::ofstream::write calls */
             utils::Serialize(*_file, EMPTY_INFO_VALUE);
         }
