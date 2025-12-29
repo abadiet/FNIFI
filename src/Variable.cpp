@@ -28,7 +28,7 @@ Variable::Variable(const std::string& key,
     if (pos == std::string::npos) {
         /* this is a listed variable */
         _kind = Variable::GetKind(key);
-        _name = key;
+        _name = "";
     } else {
         /* this is an unkown variable */
         _kind = Variable::GetKind(key.substr(pos));

@@ -134,6 +134,8 @@ fnifi::file::Info<T>* fnifi::file::Info<T>::Build(
 
 template<fnifi::file::InfoType T>
 bool fnifi::file::Info<T>::get(const File* file, T& result) {
+    DLOG("Info", this, "Get results for File " << file)
+
     const auto id = file->getId();
     const auto pos = id * _typeSz;
 
@@ -175,6 +177,9 @@ bool fnifi::file::Info<T>::get(const File* file, T& result) {
         res = NOTFOUND_INFO_VALUE;
     }
     result = res;
+
+    DLOG("Info", this, "Retrieved value " << res << " (valid=" << valid
+         << ") for File " << file)
 
     _file->seekp(std::streamoff(pos));
     utils::Serialize(*_file, res);
@@ -247,7 +252,7 @@ fnifi::file::Info<T>::Info(const fnifi::file::AFileHelper* helper,
 
 template<fnifi::file::InfoType T>
 bool fnifi::file::Info<T>::getValue(const File* file, T& result) const {
-    DLOG("Info", this, "Retrieveing value")
+    DLOG("Info", this, "Retrieving value")
 
     switch (_kind) {
         case expression::KIND:
