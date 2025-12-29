@@ -68,7 +68,7 @@ private:
     const expression::Kind _kind;
     const std::string _key;
     std::unique_ptr<utils::SyncDirectory::FileStream> _file;
-    fileId_t _maxId;
+    fileId_t _nIds;
     const size_t _typeSz;
 };
 
@@ -142,11 +142,11 @@ bool fnifi::file::Info<T>::get(const File* file, T& result) {
     if (_file->pull()) {
         /* update maxId */
         _file->seekg(0, std::ios::end);
-        _maxId = static_cast<fileId_t>(static_cast<size_t>(
-            _file->tellg()) / sizeof(T));
+        _nIds = static_cast<fileId_t>(static_cast<size_t>(
+            _file->tellg()) / _typeSz);
     }
 
-    if (id <= _maxId) {
+    if (id < _nIds) {
         /* the value may be saved */
         T res;
         _file->seekg(std::streamoff(pos));
@@ -162,11 +162,11 @@ bool fnifi::file::Info<T>::get(const File* file, T& result) {
     } else {
         /* filling the file up to the position of the value */
         _file->seekp(0, std::ios::end);
-        for (auto i = _maxId; i < id; ++i) {
+        for (auto i = _nIds; i < id + 1; ++i) {
             /* TODO avoid multiples std::ofstream::write calls */
             utils::Serialize(*_file, EMPTY_INFO_VALUE);
         }
-        _maxId = id;
+        _nIds = id + 1;
     }
 
     DLOG("Info", this, "Results for File " << file << " was not cached")
@@ -224,7 +224,7 @@ std::string fnifi::file::Info<T>::GetTypeName() {
 template<fnifi::file::InfoType T>
 fnifi::file::Info<T>::Info(const fnifi::file::AFileHelper* helper,
                          fnifi::expression::Kind kind, const std::string& key)
-: _kind(kind), _key(key), _maxId(0), _typeSz(sizeof(T))
+: _kind(kind), _key(key), _nIds(0), _typeSz(sizeof(T))
 {
     DLOG("Info", this, "Instanciation for coll " << &helper << ", type "
          << typeid(T).name() << ", kind " << kind << " and key \"" << key
@@ -245,8 +245,8 @@ fnifi::file::Info<T>::Info(const fnifi::file::AFileHelper* helper,
 
     if (ate) {
         /* the file already existed */
-        _maxId = static_cast<fileId_t>(static_cast<size_t>(_file->tellg())
-            / sizeof(T));
+        _nIds = static_cast<fileId_t>(static_cast<size_t>(_file->tellg())
+            / _typeSz);
     }
 }
 

@@ -68,7 +68,7 @@ void DiskBacked::addCollection(const file::Collection& coll) {
 
     if (ate) {
         /* the file already existed */
-        storedColl.first->second.maxId = static_cast<fileId_t>(
+        storedColl.first->second.NIds = static_cast<fileId_t>(
             static_cast<size_t>(storedColl.first->second.file->tellg())
             / sizeof(expr_t));
     }
@@ -90,13 +90,13 @@ expr_t DiskBacked::get(const file::File* file) {
     const auto pos = id * sizeof(expr_t);
 
     if (stored->second.file->pull()) {
-        /* update maxId */
+        /* update NIds */
         stored->second.file->seekg(0, std::ios::end);
-        stored->second.maxId = static_cast<fileId_t>(static_cast<size_t>(
+        stored->second.NIds = static_cast<fileId_t>(static_cast<size_t>(
             stored->second.file->tellg()) / sizeof(expr_t));
     }
 
-    if (id <= stored->second.maxId) {
+    if (id < stored->second.NIds) {
         /* the value may be saved */
         expr_t res;
         stored->second.file->seekg(std::streamoff(pos));
@@ -111,11 +111,11 @@ expr_t DiskBacked::get(const file::File* file) {
     } else {
         /* filling the file up to the position of the value */
         stored->second.file->seekp(0, std::ios::end);
-        for (auto i = stored->second.maxId; i < id; ++i) {
+        for (auto i = stored->second.NIds; i < id + 1; ++i) {
             /* TODO avoid multiples std::ofstream::write calls */
             utils::Serialize(*stored->second.file, EMPTY_EXPR_T);
         }
-        stored->second.maxId = id;
+        stored->second.NIds = id + 1;
     }
 
     DLOG("DiskBacked", this, "Results for File " << file << " was not cached")
