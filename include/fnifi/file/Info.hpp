@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <unordered_map>
 #include <memory>
+#include <sstream>
 #include <type_traits>
 #include <string>
 
