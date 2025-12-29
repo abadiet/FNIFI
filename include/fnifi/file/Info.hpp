@@ -153,7 +153,7 @@ bool fnifi::file::Info<T>::get(const File* file, T& result) {
         if (res != EMPTY_INFO_VALUE) {
             /* the value was saved */
             result = res;
-            return true;
+            return res != NOTFOUND_INFO_VALUE;
         }
 
         _file->seekg(std::streamoff(pos));
@@ -913,7 +913,7 @@ T fnifi::file::Info<T>::ParseLatLong(const std::vector<double>& coord,
     }
 
     auto mas = static_cast<T>(coord[0] * 3600000.0 + (coord[1] * 60000.0)
-                                   + coord[2] * 1000.0);
+                              + coord[2] * 1000.0);
 
     if (ref == "S" || ref == "W") {
         mas *= -1;
