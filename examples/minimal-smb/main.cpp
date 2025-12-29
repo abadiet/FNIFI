@@ -50,7 +50,12 @@ int main(int argc, char** argv) {
     /* Loop over the files */
     std::cout << "Randomly loop over all the files:" << std::endl;
     for (const auto file : fi) {
-        std::cout << file->getPath() << std::endl;
+        std::cout << file->getPath()
+            /* << static_cast<fnifi::expr_t>(
+                file->getMetadata(
+                    fnifi::expression::Kind::EXIF,
+                    "Exif.Photo.DateTimeOriginal"))*/
+            << std::endl;
     }
 
     /* Cleaning */

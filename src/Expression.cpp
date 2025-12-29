@@ -23,7 +23,7 @@ Expression::Expression(const std::string& expr,
     _handler =
         [&](const std::string& name) -> expr_t& {
             _vars.push_back({
-                std::make_unique<Variable>(name, storing, colls), 0});
+                std::make_unique<Variable>(name, colls), 0});
             return _vars.back().ref;
         };
     _sxeval.build(expr, _handler);

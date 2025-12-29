@@ -31,19 +31,35 @@ int main(int argc, char** argv) {
     fnifi::file::Collection coll(&indexingServer, storingLocal);
     fi.addCollection(coll);
 
+    /* Indexation */
+    fi.index();
+
     /* Defragment to optimize disk usage */
     fi.defragment();
 
     /* Loop over the files */
-    std::cout << "Randomly loop over all the files:" << std::endl;
-    for (const auto file : fi) {
-        const auto ctime = file->getStats().st_ctimespec;
-        std::cout << file->getPath() << ": ctime="
-            << ctime.tv_sec << "s and " << ctime.tv_nsec
-            << "ns, Exif.Image.Model=";
-        file->getMetadata(std::cout, fnifi::expression::Kind::EXIF,
-                          "Exif.Image.Model");
-        std::cout << std::endl;
+    {
+        using T = unsigned long int;
+        const auto ctime = fnifi::file::Info<T>::Build(
+            &coll, fnifi::expression::Kind::CTIME, "");
+        const auto lat = fnifi::file::Info<T>::Build(
+            &coll, fnifi::expression::Kind::LATITUDE, "");
+        const auto lon = fnifi::file::Info<T>::Build(
+            &coll, fnifi::expression::Kind::LONGITUDE, "");
+        ctime->disableSync();
+        lat->disableSync();
+        lon->disableSync();
+        std::cout << "Randomly loop over all the files:" << std::endl;
+        for (const auto file : fi) {
+            T ct, la, lo;
+            ctime->get(file, ct);
+            lat->get(file, la);
+            lon->get(file, lo);
+            std::cout << file->getPath() << " " << ct << " " << " " << la << " " << lo << std::endl;
+        }
+        ctime->enableSync();
+        lat->enableSync();
+        lon->enableSync();
     }
 
     /* sort the files by ctime */
@@ -68,6 +84,7 @@ int main(int argc, char** argv) {
     localConn.disconnect();
     indexingServer.disconnect();
     storingServer.disconnect();
+    fnifi::file::Info<int>::Free();  /* actually free every type */
 
     return 0;
 }

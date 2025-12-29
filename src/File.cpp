@@ -9,7 +9,7 @@ bool File::pCompare::operator()(const File* a, const File* b) const {
     return a->_sortScore < b->_sortScore;
 }
 
-File::File(fileId_t id, IFileHelper* helper)
+File::File(fileId_t id, AFileHelper* helper)
 : _id(id), _filteredOut(false), _helper(helper)
 {
     DLOG("File", this, "Instanciation for id " << id << " and IFileHelper "
@@ -73,7 +73,7 @@ std::string File::getCollectionName() const {
     return _helper->getName();
 }
 
-void File::setHelper(IFileHelper* helper) {
+void File::setHelper(AFileHelper* helper) {
     _helper = helper;
 }
 
@@ -133,114 +133,3 @@ bool File::StartWith(const fileBuf_t& buf, const char* chars, size_t n,
     }
     return std::memcmp(buf.data() + offset, chars, n) == 0;
 }
-
-#ifdef ENABLE_EXIV2
-expr_t File::ParseTimestamp(const std::string& date, const std::string& offset,
-    const std::string& subsec)
-{
-    std::istringstream iss(date);
-    try {
-        std::tm tm = {};
-        iss >> std::get_time(&tm, "%Y:%m:%d %H:%M:%S");
-        if (iss.fail()) {
-            return EMPTY_EXPR_T;
-        }
-
-        const auto time = std::mktime(&tm) - timezone;
-        if (time == -1) {
-            return EMPTY_EXPR_T;
-        }
-
-        const auto tp = std::chrono::system_clock::from_time_t(time);
-        auto nstime = static_cast<expr_t>(std::chrono::duration_cast<
-            std::chrono::nanoseconds>(tp.time_since_epoch()).count());
-
-        if (offset != "") {
-            const auto sign = (offset[0] == '+') ? 1LL : -1LL;
-            const auto hours = std::stol(offset.substr(1, 2));
-            const auto minutes = std::stol(offset.substr(4, 2));
-            nstime -= sign * (hours * 3600000000000L + minutes * 60000000000L);
-        }
-
-        if (subsec != "") {
-            nstime += std::stol(subsec);
-        }
-
-        return nstime;
-    } catch (...) {
-        return EMPTY_EXPR_T;
-    }
-}
-
-expr_t File::ParseTimestampISO8601(const std::string& date) {
-    const auto offsetPos = date.find_last_of("+-");
-    auto newDate = date.substr(0, offsetPos);
-    std::replace(newDate.begin(), newDate.end(), 'T', ' ');
-    std::replace(newDate.begin(), newDate.end(), '-', ':');
-    const auto offset = date.substr(offsetPos);
-    return ParseTimestamp(newDate, offset, "");
-}
-
-expr_t File::ParseTimestampMov(const std::string& date) {
-    try {
-        return std::stol(date) - 2082844800L;
-    } catch (...) {
-        return EMPTY_EXPR_T;
-    }
-}
-
-expr_t File::ParseLatLong(const std::vector<double>& coord,
-                          const std::string& ref)
-{
-    /*
-     * input:
-     *     coord = [degrees, minutes, seconds]
-     *     ref = (N|S|W|E)
-     * output: value in [-324000000, 324000000] milliarcseconds
-     */
-    if (coord.size() < 3) {
-        return EMPTY_EXPR_T;
-    }
-
-    auto mas = static_cast<expr_t>(coord[0] * 3600000.0 + (coord[1] * 60000.0)
-                                   + coord[2] * 1000.0);
-
-    if (ref == "S" || ref == "W") {
-        mas *= -1;
-    }
-
-    return mas;
-}
-
-const Exiv2::Image::UniquePtr File::openExiv2Image() const {
-    const auto path = _helper->getLocalCopyFilePath(_id);
-    Exiv2::Image::UniquePtr image;
-    try {
-        image = Exiv2::ImageFactory::open(path);
-    } catch (Exiv2::Error&) {
-        return nullptr;
-    }
-    if (image == nullptr || image.get() == nullptr) {
-        return nullptr;
-    }
-    try {
-        image->readMetadata();
-    } catch (Exiv2::Error&) {
-        return nullptr;
-    }
-    return image;
-}
-
-expr_t File::ParseAltitude(double altitude, char ref) {
-    /*
-     * input:
-     *    altitude: altitude in meters
-     *    ref: 0 = below sea level, 1 = above sea level
-     */
-    auto res = static_cast<expr_t>(altitude * 1000.0);
-    if (ref == 0 && res > 0) {
-        res *= -1;
-    }
-    return res;
-}
-#endif  /* ENABLE_EXIV2 */

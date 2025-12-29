@@ -175,7 +175,7 @@ void FNIFI::indexColl(file::Collection& coll) {
     const auto collHash = utils::Hash(coll.getName());
     for (const auto& file : removed) {
         expression::Expression::Uncache(_storing, collHash, file.second);
-        expression::Variable::Uncache(_storing, collHash, file.second);
+        file::Info<expr_t>::Uncache(file.second);
         _toRemove.insert(file.first);
     }
     for (const auto& file : added) {
@@ -192,7 +192,7 @@ void FNIFI::indexColl(file::Collection& coll) {
         /* uncache for every expressions */
         const auto id = file->getId();
         expression::Expression::Uncache(_storing, collHash, id);
-        expression::Variable::Uncache(_storing, collHash, id);
+        file::Info<expr_t>::Uncache(id);
 
         /* overwrite the cache of the current expressions */
         bool hasChanged = false;

@@ -12,10 +12,10 @@ void DiskBacked::Uncache(const utils::SyncDirectory& storing,
          << " for directory " << path)
 
     if (std::filesystem::exists(path)) {
-        for (const auto& dir : std::filesystem::directory_iterator(path)) {
-            if (dir.is_directory()) {
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+            if (entry.is_regular_file()) {
                 /* write an empty results on the id position */
-                auto file = storing.open(path / dir.path().filename());
+                auto file = storing.open(path / entry.path().filename());
                 file.seekp(id * sizeof(expr_t));
                 utils::Serialize(file, EMPTY_EXPR_T);
                 file.push();

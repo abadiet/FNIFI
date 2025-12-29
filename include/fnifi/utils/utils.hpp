@@ -89,7 +89,6 @@ std::string Hash(const std::string& s);
 
 /* IMPLEMENTATIONS */
 
-
 template <typename T>
 std::ostream& fnifi::utils::Serialize(std::ostream& os, const T& var) {
    return os.write(reinterpret_cast<const char*>(&var), sizeof(var));

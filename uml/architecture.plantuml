@@ -118,14 +118,14 @@ package fnifi {
             +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
 
-        class Variable extends DiskBacked {
-            -_type : Kind
-            -_key : std::string
-            -getValue(file : const file::File*, noCache : bool) : expr_t
+        class Variable {
+            -_infos : std::unordered_map<std::string, file::Info<expr_t>*>
+            -_kind : Kind
+            -_name : std::string
             +{static} GetKind(name : const std::string&) : Kind
-            +{static} Uncache(storing : const utils::SyncDirectory&,
-            +Variable(key : const std::string&, storing : const utils::SyncDirectory&,
-            colls : const std::vector<file::Collection*>&)
+            +Variable(key : const std::string&, colls : const std::vector<file::Collection*>&)
+            +get(file : const file::File*) : expr_t
+            +addCollection(coll : const file::Collection&)
             +disableSync(collName : const std::filesystem::path&, pull : bool := true)
             +enableSync(collName : const std::filesystem::path&, push : bool := true)
         }
@@ -147,8 +147,7 @@ package fnifi {
             +UNKNOWN
         }
 
-        Variable *--> Kind : 1..1\n_type
-
+        Variable *--> Kind : 1..1\n_kind
     }
 
     package file {
@@ -182,7 +181,11 @@ package fnifi {
             +UNKNOWN
         }
 
-        interface IFileHelper {
+        abstract AFileHelper {
+            #storing : const utils::SyncDirectory&,
+            #storingPath : const std::filesystem::path
+            +AFileHelper(storing : const utils::SyncDirectory&,
+            storingPath : const std::filesystem::path&)
             +getFilePath(id : fileId_t) : std::string
             +getLocalPreviewFilePath(id : fileId_t) : std::string
             +getLocalCopyFilePath(id : fileId_t) : std::string
@@ -191,14 +194,35 @@ package fnifi {
             +getName() : std::string
         }
 
+        class Info<T> {
+            -{static} _built : std::unordered_map<std::string, Info>
+            -_kind : experssion::Kind
+            -_key : const std::string
+            -_file : std::unique_ptr<utils::SyncDirectory::FileStream>
+            -_maxId : fileId_t
+            -_typeSz : const size_t
+            -{static} GetTypeName() : std::string
+            -Info(helper : const AFileHelper*, kind : expression::Kind,
+            key : const std::string&)
+            -getValue(file : const File*, result : T&) : bool
+            +{static} Uncache(id : fileId_t)
+            +{static} Free()
+            +{static} Build(helper : const AFileHelper*, kind : expression::Kind,
+            key : const std::string& := "") : Info<T>*
+            +get(file : const File*, result : T&)
+            +disableSync(pull : bool := true)
+            +enableSync(push : bool := true)
+        }
+
         class File {
             -_id : const fileId_t
             -_sortScore : expr_t
             -_isFilteredOut : bool
-            -_helper : const IFileHelper*
-            -{static} StartWith(buf : const fileBuf_t&, chars: const char*, n: size_t
+            -_helper : const AFileHelper*
+            -{static} StartWith(buf : const fileBuf_t&, chars: const char*, n: size_t,
+            offset : fileBuf_t::iterator::difference_type := 0)
             +{static} GetKind(buf : const fileBuf_t&) : Kind
-            +File(id : fileId_t, helper : const IFileHelper*)
+            +File(id : fileId_t, helper : const AFileHelper*)
             +operator==(other : const File&) : bool
             +getId() : fileId_t
             +getPath() : std::string
@@ -206,19 +230,17 @@ package fnifi {
             +getLocalCopyFilePath() : std::string
             +getStats() : struct stat
             +getKind() : Kind
-            +get(T& result, type : expression::Kind, key : const std::string&) : expr_t
+            +get(T& result, type : expression::Kind, key : const std::string& := "") : bool
             +read(nocache: bool := false) : fileBuf_t
             +setSortingScore(score : expr_t)
             +setIsFilteredOut(isFilteredOut : bool)
             +isFileteredOut() : boll
             +getCollectionName() : std::string
-            +setHelper(IFileHelper* helper)
+            +setHelper(AFileHelper* helper)
         }
 
-        class Collection extends IFileHelper {
+        class Collection extends AFileHelper {
             -_indexingConn : IConnection*
-            -_storing : const utils::SyncDirectory&
-            -_storingPath : const std::filesystem::path
             -_files : std::unordered_map<fileId_t, File>
             -_mapping : std::unique_ptr<utils::SyncDirectory::FileStream>
             -_filepaths : std::unique_ptr<utils::SyncDirectory::FileStream>
@@ -393,9 +415,9 @@ FNIFI *--> Expression : 1..1\n_filtExpr
 FNIFI o--> File : 0..*\n_files
 FNIFI o--> File : 0..*\n_toRemove
 FNIFI o--> SyncDirectory : 1..1\n_storing
-File o--> IFileHelper : 1..1\n_coll
+File o--> AFileHelper : 1..1\n_helper
 Collection o--> IConnection : 1..1\n_indexingConn
-Collection o--> SyncDirectory : 1..1\n_storing
+AFileHelper o--> SyncDirectory : 1..1\n_storing
 Collection *--> File : 0..*\n_files
 Collection *--> SyncDirectory::FileStream : 0..*\n_mapping
 Collection *--> SyncDirectory::FileStream : 0..*\n_filepaths
@@ -404,5 +426,8 @@ DirectoryIterator *--> DirectoryIterator::Entry : 0..*\n_entries
 Expression *--> Variable : 0..*\n_vars
 DiskBacked *--> SyncDirectory::FileStream : 0..*\n_storedColls
 DiskBacked *--> SyncDirectory : 1..1\n_storing
+'Info *--> fnifi.expression.Kind 1..1\n_kind
+Info *--> SyncDirectory::FileStream : 1..1\n_file
+Variable o--> Info : 0..*\n_infos
 
 @enduml

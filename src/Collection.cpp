@@ -21,8 +21,8 @@ using namespace fnifi::file;
 
 Collection::Collection(connection::IConnection* indexingConn,
                        utils::SyncDirectory& storing, size_t maxCopiesSz)
-: _indexingConn(indexingConn), _storing(storing),
-    _storingPath(utils::Hash(getName())),
+: AFileHelper(storing, utils::Hash(indexingConn->getName())),
+    _indexingConn(indexingConn),
     _mapping(std::make_unique<utils::SyncDirectory::FileStream>
              (_storing, _storingPath / MAPPING_FILE)),
     _filepaths(std::make_unique<utils::SyncDirectory::FileStream>
@@ -63,10 +63,8 @@ Collection::Collection(connection::IConnection* indexingConn,
 }
 
 Collection::Collection(Collection&& other) noexcept
-    : _files(std::move(other._files)),
-    _indexingConn(other._indexingConn),
-    _storing(other._storing),
-    _storingPath(std::move(other._storingPath)),
+: AFileHelper(other._storing, std::move(other._storingPath)),
+    _files(std::move(other._files)), _indexingConn(other._indexingConn),
     _mapping(std::make_unique<utils::SyncDirectory::FileStream>
              (_storing, _storingPath / MAPPING_FILE)),
     _filepaths(std::make_unique<utils::SyncDirectory::FileStream>

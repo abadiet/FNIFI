@@ -3,7 +3,7 @@
 
 #include "fnifi/file/File.hpp"
 #include "fnifi/file/Collection.hpp"
-#include "fnifi/expression/DiskBacked.hpp"
+#include "fnifi/file/Info.hpp"
 #include "fnifi/utils/SyncDirectory.hpp"
 #include "fnifi/expression/Kind.hpp"
 #include "fnifi/utils/utils.hpp"
@@ -13,19 +13,21 @@
 namespace fnifi {
 namespace expression {
 
-class Variable : public DiskBacked {
+class Variable {
 public:
     static Kind GetKind(const std::string& name);
-    static void Uncache(const utils::SyncDirectory& sync,
-                        const std::filesystem::path& collPath, fileId_t id);
 
-    Variable(const std::string& key, const utils::SyncDirectory& storing,
+    Variable(const std::string& key,
              const std::vector<file::Collection*>& colls);
 
-private:
-    expr_t getValue(const file::File* file) override;
+    expr_t get(const file::File* file);
+    void addCollection(const file::Collection& coll);
+    void disableSync(const std::string& collName, bool pull = true);
+    void enableSync(const std::string& collName, bool push = true);
 
-    Kind _type;
+private:
+    std::unordered_map<std::string, file::Info<expr_t>*> _infos;
+    Kind _kind;
     std::string _name;
 };
 

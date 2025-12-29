@@ -3,7 +3,7 @@
 
 #include "fnifi/connection/IConnection.hpp"
 #include "fnifi/utils/SyncDirectory.hpp"
-#include "fnifi/file/IFileHelper.hpp"
+#include "fnifi/file/AFileHelper.hpp"
 #include "fnifi/file/File.hpp"
 #include "fnifi/utils/utils.hpp"
 #include <unordered_set>
@@ -23,7 +23,7 @@ class FNIFI;
 
 namespace file {
 
-class Collection : virtual public IFileHelper {
+class Collection : virtual public AFileHelper {
 public:
     Collection(connection::IConnection* indexingConn,
                utils::SyncDirectory& storing,
@@ -78,8 +78,6 @@ private:
 
     std::unordered_map<fileId_t, File> _files;
     connection::IConnection* _indexingConn;
-    const utils::SyncDirectory& _storing;
-    const std::filesystem::path _storingPath;
     std::unique_ptr<utils::SyncDirectory::FileStream> _mapping;
     std::unique_ptr<utils::SyncDirectory::FileStream> _filepaths;
     std::unique_ptr<utils::SyncDirectory::FileStream> _info;
@@ -87,7 +85,7 @@ private:
     const size_t _maxCopiesSz;
     size_t _copiesSz;
 
-    friend FNIFI;
+    friend class fnifi::FNIFI;
 };
 
 }  /* namespace file */
